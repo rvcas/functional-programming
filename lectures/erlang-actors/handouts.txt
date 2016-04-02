@@ -1,0 +1,506 @@
+I. Message-Passing Concurrency
+ A. motivation
+------------------------------------------
+   MESSAGE-PASSING CONCURRENCY
+
+def: message passing is
+     a programming style in which
+     a program consists of
+           independent entities (agents)
+     that interact by sending messages
+          asynchronously
+
+
+Importance:
+
+
+
+
+
+
+
+
+
+------------------------------------------
+        What is asynchronous?
+        What's the importance of message passing?
+ B. new concepts and capabilities
+  1. spawn
+------------------------------------------
+             CONCEPTS
+
+new capability: create new process
+
+    Pid = spawn(Fun)
+    Pid2 = spawn(mymodule,myfun,[Arg1,Arg2,...])
+    Pid3 = spawn(OtherMachine,Fun)  % on OtherMachine
+    Pid4 = spawn(OtherMachine,mymodule,myfun,[Arg1,Arg2,...])
+
+Example:
+    
+main() ->
+    _Other = spawn(fun rest/0).
+
+rest() ->
+    timer:sleep(200),
+    io:format("message from process ~w~n", [self()]).
+
+------------------------------------------
+  2. send and receive
+------------------------------------------
+
+new capability: send to named process
+
+    Pid ! Message
+
+ - sends Message to Pid, and immediately continues
+ - all clients can always send
+
+new capability: receive sent messages
+
+  Example:
+
+  loop() ->
+     receive
+       {P, doIt, X} -> P ! {self(), answer, X+2}, loop();
+       {P, halt} -> P ! ok
+     end
+
+  Syntax:
+
+    <Expression> ::= ...
+        receive 
+           <Clauses>
+           <OptionalAfter>
+        end
+
+    <Clauses> ::= <Clause>
+               |  <Clause> ; <Clauses>
+
+    <Clause> ::= <Pattern> <OptionalGuard> -> <Expression>
+
+    <OptionalGuard> ::= <empty> | when <Expression>
+
+    <Pattern> is data with possible variable declarations
+
+ - each process has a mailbox
+ - server can read all messages
+
+ Fundamentally nondeterministic
+    - the receives resolves races in message sends
+
+------------------------------------------
+        What does it mean to be "named"?
+        Do we still have referential transparency?
+ C. semantics by example
+------------------------------------------
+       SEND EXAMPLES (RACE CONDITIONS)
+
+-module(sendexamples).
+-export([main/0,server/0,client/2]).
+
+main() ->
+    S = spawn(sendexamples,server,[]),
+    spawn(sendexamples,client,[S,1]),
+    spawn(sendexamples,client,[S,2]),
+    spawn(sendexamples,client,[S,3]),
+    spawn(sendexamples,client,[S,4]).
+
+server() ->
+    receive({msg,N}) ->
+	    io:format("received ~b~n",[N]),
+	    server()
+    end.
+
+dofor(I,F) ->
+    if I > 0 ->
+	    F(),
+	    dofor(I-1,F);
+       true -> done
+    end.
+
+client(S,N) ->
+    dofor(5, fun() ->
+		     W = random:uniform(5),
+		     timer:sleep(W),
+		     S!{msg,N},
+		     done
+	     end).
+
+------------------------------------------
+     How would you do this in Java?
+II. actors
+------------------------------------------
+              ACTORS
+
+def: An *actor* is a process that communicates
+     with other processes by sending messages.
+
+i.e., an Erlang process
+
+Used as clients, servers, nodes in distributed systems
+
+Two types:
+
+   - stateless (state doesn't change)
+   - stateful 
+------------------------------------------
+        Why would you want to write a server without any state?
+ A. stateless servers
+  1. math server
+------------------------------------------
+        COMPUTATION SERVER EXAMPLE
+
+Math server, 
+sends a message of the form 
+    {ok,Val}
+to Pid, where 
+    Val = math:f(math:g(... (math:h(X)) ...))
+when it receives messages of the form:
+    {Pid, compute, [f, g, ..., h], X}
+
+-module(mathserver).
+-export([start/0,compute/3]).
+
+start() ->
+
+
+mserver() ->
+
+
+
+
+accumulate
+
+
+
+
+------------------------------------------
+------------------------------------------
+             CLIENT CODE
+
+% (written in the mathserver module)
+
+compute(P,Funs,Val) ->
+    P!{self(),compute,Funs,Val},
+    receive
+	{ok,Res} ->
+	     Res
+    end.
+
+With this can do:
+
+  P = mathserver:start().
+  mathserver:compute(P, [sin,cos], 1.0).
+------------------------------------------
+  2. exercise
+------------------------------------------
+           FOR YOU TO DO
+
+Write a stateless server to compute factorials (of integers).
+------------------------------------------
+ B. stateful servers
+  1. print spooler
+------------------------------------------
+         PRINT SPOOLER EXAMPLE
+
+Spooler process handles messages of forms:
+
+   {Client, print, Str}
+      from a Client process,
+      to print string Str
+
+   {Printer, grab}
+      from Printer process, to get a job to print
+
+   {Client, status}
+      from a Client process
+      to return status of the spooler.
+------------------------------------------
+------------------------------------------
+          PRINT SPOOLER CODE
+
+start() ->
+    
+
+init() ->
+
+
+
+
+
+loop({queue, Jobs, Printers, Next}) ->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+------------------------------------------
+------------------------------------------
+          PRINTER 
+
+Sends {Me, grab} messages to spooler,
+then prints them
+
+start(Spooler) ->
+
+
+init(Spooler) ->
+
+
+loop({Me, Spooler}) ->
+
+
+
+grab(Spooler, Me) ->
+
+
+
+------------------------------------------
+------------------------------------------
+            CLIENTS
+
+Asking to print by sending 
+  {Pid, print, Str} messages to spooler.
+
+Asking for status by sending
+  {Pid, status} messages to spooler
+
+print(Spooler, Str) ->
+
+
+
+
+
+status(Spooler) ->
+
+
+
+
+
+
+------------------------------------------
+  2. resource arbiter
+------------------------------------------
+            RESOURCE ARBITER
+
+Server that responds to 3 kinds of messages
+
+{Pid, status}  
+     sends Pid message: free or inUse
+
+{Pid, reserve}
+     eventually sends Pid reserved,
+     when no other process is using resource
+
+{Pid, release}
+     lets the resource be used by another process
+
+------------------------------------------
+------------------------------------------
+          WHAT STATE?
+
+What information does the resourcearbiter need?
+
+
+
+
+------------------------------------------
+------------------------------------------
+          RESOURCEARBITER MODULE
+
+-module(resourcearbiter).
+-export([start/0, init/0]).
+-export_type([status/0]).
+start() ->
+    spawn(?MODULE, init, []).
+
+
+init() ->
+
+
+
+loop(
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+------------------------------------------
+III. generalizing servers
+------------------------------------------
+WHAT WOULD A GOOD FUNCTIONAL PROGRAMMER DO?
+
+We've seen several coding patterns in Erlang.
+So...
+
+
+
+------------------------------------------
+ A. RPC pattern
+------------------------------------------
+              RPC PATTERN
+
+Typical in Erlang code to make an RPC:
+
+    RA ! {self(), reserve},
+    receive
+        reserved -> ok
+    end
+
+Can we make an abstraction of this?
+
+rpc(Name, Request) ->
+
+
+
+
+
+
+------------------------------------------
+        Can we do the same for entire servers?
+ B. server abstraction
+------------------------------------------
+    SERVER ABSTRACTION (VERSION 1)
+
+Typical server:
+
+-module(server1).
+-export([start/2, rpc/2]).
+
+start(Name, Mod) ->
+    register(Name, 
+             spawn(fun() -> loop(Name, Mod, Mod:init()) 
+                   end)).
+
+% ...rpc as above...
+
+loop(Name, Mod, State) ->
+    receive
+	{From, Request} ->
+            {Response, NewState} = Mod:handle(Request, State),
+            From ! {Name, Response},
+            loop(Name, Mod, NewState)
+    end.   
+
+------------------------------------------
+        What does this do?
+        What is the initial state of the loop?
+        What does the loop do?
+------------------------------------------
+         GAUGE SERVER EXAMPLE
+
+Tracks a counter (an integer),
+responds to messages:
+
+count
+      replies 'counted', and increments counter
+
+value
+      replies {value_is, Counter}
+         where Counter is the counter's value
+
+{changeTo, New}
+      replies ok, and changes counter to New
+------------------------------------------
+      How do we write this using server1?
+------------------------------------------
+-module(gauge_server).
+-export([init/0, count/0, value/0, changeTo/1, handle/2]).
+-import(server1, [rpc/2]).
+
+%% Calls that clients can make on this server
+count() -> 
+value() -> 
+changeTo(NewValue) -> 
+
+
+%% callback routines
+init()
+
+
+
+
+
+
+
+------------------------------------------
+        Do you see how that works?
+------------------------------------------
+              FOR YOU TO DO
+
+Using server1, write a module 
+shoppinglist that tracks a list of atoms,
+and responds to the messages:
+
+{add, Item}
+        responds 'added' and remembers Item in the list
+
+getList
+        responds with {list_is, Lst}, 
+        where Lst is the remembered list (in some order)
+
+clear
+        responds 'cleared' and forgets all items in the list
+------------------------------------------
+        What separation of concerns does this coding style allow?
+        What other non-functional concerns might such a higher-order server
+           handle?
+ C. using the real gen_server
+------------------------------------------
+   3 SIMPLE STEPS FOR USING GEN_SERVER
+
+1. Decide on callback module name.
+
+2. Write the client interface functions
+
+3. Write the callback functions in the callback module
+
+------------------------------------------
+  1. example, running average of last 3  
+------------------------------------------
+ RUNNING AVERAGE OF 3 MEASUREMENTS SERVER
+
+module name: runavg
+
+interface functions:
+
+   note(Measurement) records Measurement,
+          returns 'ok'
+
+   average() returns the current average
+       if at least 3 measurements have been given
+
+Erlang code for these:
+
+
+
+
+
+
+
+------------------------------------------

@@ -1,0 +1,181 @@
+COP 4020 Lecture -*- Outline -*-
+
+* Message-Passing Concurrency
+
+    Based in part on Peter van Roy and Seif Haridi's book,
+    "Concepts, Techniques, and Models of Computer Programming"
+    (MIT Press, 2004),
+    and Joe Armstrong's book "Programming Erlang" (Pragmatic, 2007).
+
+** motivation
+
+------------------------------------------
+   MESSAGE-PASSING CONCURRENCY
+
+def: message passing is
+     a programming style in which
+     a program consists of
+           independent entities (agents)
+     that interact by sending messages
+          asynchronously
+
+
+Importance:
+
+
+
+
+
+
+
+
+
+------------------------------------------
+     ... service-oriented architecture
+         multi-agent systems
+         client-server systems (*key*)
+         distributed systems (in general, if don't use shared memory)
+         good for building highly reliable systems (as in Erlang)
+
+        Q: What is asynchronous?
+
+           Not waiting for a reply
+
+        Q: What's the importance of message passing?
+
+           - multi-agent systems (same as message passing systems)
+
+           - natural for distributed systems
+                   reflects structure of system and its costs
+
+           - lends itself to building highly reliable systems
+                   failures don't make other entities hang
+
+** new concepts and capabilities
+*** spawn
+------------------------------------------
+             CONCEPTS
+
+new capability: create new process
+
+    Pid = spawn(Fun)
+    Pid2 = spawn(mymodule,myfun,[Arg1,Arg2,...])
+    Pid3 = spawn(OtherMachine,Fun)  % on OtherMachine
+    Pid4 = spawn(OtherMachine,mymodule,myfun,[Arg1,Arg2,...])
+
+Example:
+    
+main() ->
+    _Other = spawn(fun rest/0).
+
+rest() ->
+    timer:sleep(200),
+    io:format("message from process ~w~n", [self()]).
+
+------------------------------------------
+           see spawndemo.erl
+        The process runs in a separate address space,
+        doesn't share scope except if passed a closure,
+        so it has to communicate by message passing...
+
+*** send and receive
+------------------------------------------
+
+new capability: send to named process
+
+    Pid ! Message
+
+ - sends Message to Pid, and immediately continues
+ - all clients can always send
+
+new capability: receive sent messages
+
+  Example:
+
+  loop() ->
+     receive
+       {P, doIt, X} -> P ! {self(), answer, X+2}, loop();
+       {P, halt} -> P ! ok
+     end
+
+  Syntax:
+
+    <Expression> ::= ...
+        receive 
+           <Clauses>
+           <OptionalAfter>
+        end
+
+    <Clauses> ::= <Clause>
+               |  <Clause> ; <Clauses>
+
+    <Clause> ::= <Pattern> <OptionalGuard> -> <Expression>
+
+    <OptionalGuard> ::= <empty> | when <Expression>
+
+    <Pattern> is data with possible variable declarations
+
+ - each process has a mailbox
+ - server can read all messages
+
+ Fundamentally nondeterministic
+    - the receives resolves races in message sends
+
+------------------------------------------
+   See sendreceive.erl and run examples
+
+        Scope of variables declared in a <Pattern> includes the guard
+        and the rest of the <Clause>.
+
+        Q: What does it mean to be "named"?
+           several clients can send to the Pid, all at same time
+
+        Q: Do we still have referential transparency?
+           no
+
+** semantics by example
+------------------------------------------
+       SEND EXAMPLES (RACE CONDITIONS)
+
+-module(sendexamples).
+-export([main/0,server/0,client/2]).
+
+main() ->
+    S = spawn(sendexamples,server,[]),
+    spawn(sendexamples,client,[S,1]),
+    spawn(sendexamples,client,[S,2]),
+    spawn(sendexamples,client,[S,3]),
+    spawn(sendexamples,client,[S,4]).
+
+server() ->
+    receive({msg,N}) ->
+	    io:format("received ~b~n",[N]),
+	    server()
+    end.
+
+dofor(I,F) ->
+    if I > 0 ->
+	    F(),
+	    dofor(I-1,F);
+       true -> done
+    end.
+
+client(S,N) ->
+    dofor(5, fun() ->
+		     W = random:uniform(5),
+		     timer:sleep(W),
+		     S!{msg,N},
+		     done
+	     end).
+
+------------------------------------------
+
+        shows numbers in some random order
+
+     Send puts the given value at the end of the targeted mailbox
+
+     Q: How would you do this in Java?
+        A port is a new kind of object.
+        Use object identity of the port as its name.
+        Send is an operation on ports that mutates the stream it contains.
+

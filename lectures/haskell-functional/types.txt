@@ -1,0 +1,355 @@
+Lecture -*- Outline -*-
+
+* Types in Haskell (Ch 13 in Thompson, Ch 4 in Davie)
+
+Static type systems can catch program errors
+before the program is run.
+
+------------------------------------------
+    
+* Terminology: static vs. dynamic type checking
+
+def: a *static* property is one that
+     can be checked before runtime.
+
+def: a *dynamic* property must be checked
+     (in general) at runtime.
+
+def: a *type error* is a successful use 
+     a function outside of its domain.
+
+def: a program is *type safe* if it cannot
+     have a type error at runtime.
+
+------------------------------------------
+     
+* Static and dynamic type checking in different languages
+
+Q: When is static type safety checked?
+
+   before runtime
+
+Q: What languages have static type checking?
+
+   Haskell, Java, C++
+
+Q: What languages have dynamic type checking?
+
+   Smalltalk, Ruby, Python, Erlang, ...
+
+------------------------------------------
+
+* Type operators (Davie 4.1)
+    
+Haskell's type system has several interesting features.
+
+------------------------------------------
+
+* Type notation
+
+Type declarations
+
+	x :: Integer
+	f :: Integer -> Integer
+
+Type operators
+
+  operator	meaning
+  =============================
+  _ -> _        function type
+  (_ , _)       product type
+  [ _ ]         list type
+
+Note that the function type is right associative:
+
+  s -> t -> u  means  s -> (t -> u)
+
+  s->t->u->v   means  s->(t->(u->v))
+
+------------------------------------------
+
+* Polymorphic types (Thompson 9.2, Davie 4.2)
+
+Monomorphic examples:
+
+  Integer
+  [Bool] -> Bool
+  [(Integer, Integer) -> Bool]
+
+Polymorphic examples:
+
+  [i]
+  [b] -> b
+  [(i,i) -> Bool]
+
+Can use any variable id for a type name (lower case: a, b, ..., z)
+
+------------------------------------------
+
+* Type synonyms (Davie 4.3.1)
+
+Examples
+
+> type Nat = Int
+> type TextString = [(Nat, String)]
+
+> type Stack a = [a]
+> type Queue a = [a]
+> type MyQueue a = Queue a
+> type Predicate a = (a -> Bool)
+
+The semantics is that these are just abbreviations.
+
+Q: Do these declaratiosn allow us to pass a (Stack Int)
+   to a function of type [Int] -> Int?
+
+Load Type.hs and compare types of by executing
+
+> let x = inc 10::Int
+> :type x
+x :: Int
+> let y = inc 10::Nat
+>:type y
+y :: Nat
+
+------------------------------------------
+
+* Algebraic data types (Thompson 14, Davie 4.4) 
+
+Can simulate enumerations:
+
+  data Font    = Roman | Italic | Bold
+
+  data Color   = Red | Blue | Yellow 
+
+  data Boolean = True | False 
+
+Can also be used to define recursive types:
+
+  data Tree a = Lf
+              | Br (a, Tree a, Tree a)
+                  deriving (Eq, Show)
+
+Recall that the constructor names must start with an upper case letter!
+
+------------------------------------------
+
+* Abstract data types (Thompson 15, Davie 4.5, 4.9)
+
+See file Fraction.hs
+See also FractionAlternative for an alternative definition
+
+module Fraction (Fraction, mkFraction,
+                 num, denom, add, sub)
+where
+
+data Fraction = Integer :/ Integer
+
+mkFraction _ 0 = error "undefined"
+mkFraction n d = n :/ d
+
+num   (n :/ d) = n
+denom (n :/ d) = d
+
+add (n1 :/ d1) (n2 :/ d2) = mkFraction (n1 * d2 + n2 * d1)
+                                       (d1 * d2)
+
+sub (n1 :/ d1) (n2 :/ d2) = mkFraction (n1 * d2 - n2 * d1)
+                                       (d1 * d2)
+
+------------------------------------------
+
+* Free and not free data types
+
+def: a data type is *free* (*algebraic)
+     if any value manufactured using the constructor functions is legal.
+
+     e.g. Stack a, [a], ...
+
+def: a data type is *not free* (abstract)
+    if some values manufactured using the constructor functions
+    are not legal.
+	
+    e.g. Fraction, Set, PrimeNumber
+
+    Sometimes you have a choice of how to define the type.
+
+    e.g., NonEmptyList
+
+------------------------------------------
+
+* Side note: Efficient implementation of a queue
+
+See Queue.hs
+
+------------------------------------------
+
+* Overview of type inference (Thompson 13, Davie 4.7)
+
+Type checking: you declare type,
+	       compiler infers type,
+	       compiler compares
+
+Type inference: compiler infers type
+                compiler checks consistency
+
+In Haskell don't need to declare types
+	(usually)
+
+Example:
+
+> mymap f [] = []
+> mymap f (x:xs) = (f x):(mymap f xs)
+
+The compiler infers mymap :: (a->b) -> [a] -> [b]
+
+Since the variables are unconstrained, this is polymorphic.
+
+------------------------------------------
+
+* Polymorphism 
+
+A value is polymorphic if there is more than one type it can have. 
+Polymorphism is widespread in Haskell and is a key feature of its type 
+system.
+
+Most polymorphism in Haskell falls into one of two broad categories: 
+
+- parametric polymorphism and 
+- ad-hoc polymorphism.
+
+See https://wiki.haskell.org/Polymorphism
+
+------------------------------------------
+
+* Ad hoc polymorphism and type classes (Thompson 12, Davie 4.8)
+
+Parametric polymorphism:
+
+> map :: (a -> b) -> [a] -> [b]
+
+Ad hoc polymorphism:
+
+> square :: Num a => a -> a
+> square x = x * x
+
+The point is that square x only works on those x for which * is defined.
+
+It's illuminating to make a parametric version of this:
+
+squareP :: (a -> a -> a) -> a -> a
+squareP mult x = x `mult` x 
+		
+So what square needs to be polymorphic, is an additional "capability",
+the appropriate multiplication routine.
+
+The general idea is that we group types with related sets of
+operations into type classes.
+
+In the above example, (Num a =>) gives the name of the type class 
+required.
+
+------------------------------------------
+
+* Type classes (Thompson 13.2 and 13.4)
+
+-- abbreviated Eq type class
+
+class Eq a where
+  (==), (/=) :: a -> a -> Bool
+  x /= y = not (x==y)
+
+-- abbreviated Ord type class
+
+class (Eq a) => Ord a where
+  compare              :: a -> a -> Ordering
+  (<), (<=), (>=), (>) :: a -> a -> Bool
+  max, min             :: a -> a -> a
+
+There is a "default method" provided for /=, and the ordering stuff.
+This is similar to an "abstract class" in OOP,
+but remember it's *static* overloading.
+
+  data Ordering = LT | EQ | GT
+                    deriving (Bounded, Enum, Eq, Ord, Read, Show)
+
+The Ord type class is a *subclass* of Eq, it inherits defs from Eq,
+really if you think of these as requirements,
+it's a refinement (stronger requirement) on clients.
+
+There are also various ways to declare that a type you make up
+is an instance of a type class.
+
+See Thompson 13.4 for a summary of the built-in Haskell
+type classes.
+
+See also the note "Type classes and OO programming" on page 307 in
+Thompson 13.4.
+
+------------------------------------------
+
+* Type class instances (Thompson 13.3)
+
+Declaring type class instances; see TypeClassInstance.hs
+
+===========================================
+data Tree a =   Lf
+              | Br (a, Tree a, Tree a)
+
+instance Show a => Show (Tree a) where
+  show t = show $ preorder t ""
+
+preorder :: Tree a -> String -> [(String, a)]
+preorder Lf            _    = []
+preorder (Br(v,t1,t2)) path =
+  [(path, v)] ++ 
+  (preorder t1 (path ++ "L")) ++ 
+  (preorder t2 (path ++ "R"))
+===========================================
+
+Pitfall: apparently the "where" can't be at the same indentation level
+         as "instance" for the layout rules to work properly.
+
+------------------------------------------
+
+* Higher-order type classes
+
+-- from Prelude
+
+>class Functor f where
+>    fmap :: (a -> b) -> (f a -> f b)
+
+>instance Functor [] where
+>    fmap g []     = []
+>    fmap g (x:xs) = g x : fmap g xs
+
+Here fmap has the type (a -> b) -> ([a] -> [b]) 
+
+>data Maybe a = Nothing | Just a
+>            deriving (Eq, Ord, Read, Show)
+
+>instance Functor Maybe where
+>    fmap g Nothing  = Nothing
+>    fmap g (Just x) = Just (g x)
+
+Here fmap has the type (a -> b) -> (Maybe a -> Maybe b)
+
+The type Maybe a is often used with functions that would otherwise
+have errors.
+
+------------------------------------------
+
+* Higher-order type classes
+
+>data Tree a =   Lf
+>              | Br (a, Tree a, Tree a)
+>
+>instance Functor Tree where
+>  fmap g Lf = Lf
+>  fmap g (Br (v, t1, t2)) = Br (g v, fmap g t1, fmap g t2)
+
+Here fmap has the type (a -> b) -> (Tree a -> Tree b)
+
+See TypeClassInstance.hs
+
+------------------------------------------

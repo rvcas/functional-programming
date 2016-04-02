@@ -1,0 +1,123 @@
+COP 4020 Lecture -*- Outline -*-
+
+* Message-Passing Concurrency (Ch 5)
+
+    Based on Peter van Roy and Seif Haridi's book,
+    "Concepts, Techniques, and Models of Computer Programming"
+    (MIT Press, 2004),
+    where all references that are not otherwise attributed are found.
+
+** self-test
+------------------------------------------
+        SELF-TEST FOR CHAPTER 5
+
+Message passing [Concepts] [EvaluateModels]
+ What is message passing?
+ What does asynchronous mean?
+ What about message passing is asynchronous?
+ Why is message passing important?
+
+Ports [Concepts] [EvaluateModels]
+ What is a port?  What does NewPort do?
+ What does Send do?
+ How does message passing overcome the limitations 
+  of the declarative concurrent model?
+
+Semantics [MapToLanguages]
+ How would you implement NewPort and Send in Java?
+
+Semantics [EvaluateModels] 
+ Why is a mutation needed to describe the meaning of Send?
+
+Semantics [Concepts]
+ Can you bind elements to a stream after using it to make a port?
+ Can you two ports share a stream?
+
+Semantics [Concepts] [EvaluateModels]
+ Why can't we write NewPort and Send in the declarative concurrent model?
+
+Port objects [Concepts] [EvaluateModels]
+ What is a port object?
+ How is it different from a port? From a stream object?
+ Can port objects have state?
+
+Port objects [Concepts] [UseModels]
+ How can you get information out of a port object?
+
+NewPortObject [Concepts] [UseModels]
+ What does NewPortObject do?
+ After executing
+             P = {NewPortObject I0 F}
+             {Send P a}
+             {Send P b}
+             {Send P c}
+  what is the state inside the port object?
+
+Agents [Concepts] 
+ What is an agent?
+
+Using NewPortObject [UseModels]
+ Using NewPortObject, write 
+     MinServer: <fun {$}: <Port T>>
+ such that the following tests work.
+   declare
+   MinP = {MinServer}
+   {Test {Send MinP min(3 7 $)} '==' 3}
+   {Test {Send MinP min(7 3 $)} '==' 3}
+   {Test {Send MinP min(6 4 $)} '==' 4}
+   {Test {Send MinP min(0 94 $)} '==' 0}
+
+Reasoning [EvaluateModels]
+ How can one specify and verify systems built using message passing?
+
+RMI [Concepts] [EvaluateModels]
+ What is a protocol? 
+ What is RMI?
+ How do you simulate RMI using Send?
+ How to simulate asynchronous RMI?
+
+Servers [UseModels] [EvaluateModels]
+ Are message executed concurrently by a NewPortObject server?
+
+Callbacks [Concepts] [EvaluateModels]
+ How to implement callbacks?
+
+Exceptions [Concepts] 
+ What should the client do if the server encounters an exception?
+
+Design [UseModels] 
+ How do you design a multiagent system?
+
+Design [UseModels] [MapToLanguages]
+ In what way do list operations correspond to concurrency patterns?
+
+Architecture [UseModels] [MapToLanguages]
+ What if you don't want a lot of threads?
+
+Data [UseModels] [EvaluateModels]
+ How would you program a concurrent queue using ports?
+
+Termination [UseModels] 
+ How can you detect termination or other resource use in a modular way?
+
+Erlang [EvaluateModels] [MapToLanguages]
+ What are the features of Erlang that make it interesting?
+
+Erlang design [UseModels] [EvaluateModels]
+ What is useful about Erlang's combination of features?
+
+Erlang's model [MapToLanguages]
+ How does the Erlang model differ from that of Oz?
+ How are mailboxes modeled?
+
+Erlang semantics [Concepts] [MapToLanguages]
+ What does receive do?
+ How would it be simulated in Oz?
+
+Nondeterministic model [Concepts] [EvaluateModels]
+ What is the nondeterministic concurrent model?
+ How does it differ from the declarative concurrent model?
+ From the message passing model?
+ What are its problems?
+
+------------------------------------------

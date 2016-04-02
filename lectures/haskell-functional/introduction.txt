@@ -1,0 +1,177 @@
+Lecture -*- Outline -*-
+
+------------------------------------------
+
+* Introduction to Haskell
+
+  My lectures are based on Dr. Gary Leavens lectures.  
+  I have made some minor and major changes.
+
+  Dr. Leavens' orginal lectures are partly based on the following books:
+
+  Simon Thompson,
+  "Haskell: The Craft of Functional Programming", Addison-Wesley,
+  1996 and the Third edition, 2011.
+
+  Anthony J. T. Davie,
+  "An Introduction to Functional Programming Systems Using Haskell",
+  Cambridge, 1992.
+
+  They also use material from haskell.org
+
+------------------------------------------
+
+* Some features of Haskell
+
+- Functions as data allows better abstraction
+- All changing arguments passed explicitly
+  (no implicit global state, no side effects)
+- Lazy evaluation is the default
+- Powerful pattern matching 
+- Type-based separation of 
+  impure (those having side effects) and pure functions 
+- Type classes for static overloading
+
+------------------------------------------
+
+* Computation of values
+
+  We will start by using Haskell just to do computations of values,
+  and not worry about I/O (impure functions) very much
+
+------------------------------------------
+ 
+* Haskell platform installation
+
+Download the Haskell platform from
+https://www.haskell.org/platform/
+
+Documentation (book, courses, tutorials, manuals and guides etc.)
+are available at
+https://www.haskell.org/documentation
+
+------------------------------------------
+    
+* Haskell platform basics: ghci (interpreter)
+
+$ ghci
+GHCi, version 7.6.3: http://www.haskell.org/ghc/  :? for help
+Loading package ghc-prim ... linking ... done.
+Loading package integer-gmp ... linking ... done.
+Loading package base ... linking ... done.
+Prelude> :quit
+Leaving GHCi.
+$
+
+------------------------------------------
+
+* Loading and editing files (interpreter)
+
+$ ghci
+GHCi, version 7.6.3: http://www.haskell.org/ghc/  :? for help
+Loading package ghc-prim ... linking ... done.
+Loading package integer-gmp ... linking ... done.
+Loading package base ... linking ... done.
+Prelude> :load "Fact.hs"
+[1 of 1] Compiling Fact             ( Fact.hs, interpreted )
+Ok, modules loaded: Fact.hs
+Fact> :type fact
+fact :: Int -> Int
+Fact> fact 3
+6
+Fact> fact 100
+0
+Fact> :set editor "emacs"
+Fact> :edit "Fact.hs"
+[1 of 1] Compiling Fact             ( Fact.hs, interpreted )
+Ok, modules loaded: Fact.
+Fact> :reload
+Ok, modules loaded: Fact.
+Fact> :type fact
+fact :: Integer -> Integer
+Fact> fact 100
+93326215443944152681699238856266700490715968264381621468592963895217599993229915608941463976156518286253697920827223758251185210916864000000000000000000000000
+Fact> :quit
+Leaving GHCi.
+$
+
+------------------------------------------
+
+* Literate Haskell scripts
+
+Why? So can develop a discussion/article/program with extensive
+documentation, and have the code in the same file!
+
+program parts have > as first character on line,
+so even this very file can be processed as a program!
+
+file Hello.lhs:
+
+==============================
+         HELLO WORLD
+
+This is the hello world program
+
+> -- part of a Haskell prog
+> main = putStrLn "Hello, world!"
+     
+The blank lines surrounding
+the program are mandatory.
+
+This file should have a .lhs
+suffix.
+==============================
+
+------------------------------------------
+
+* Interpreting Haskell scripts
+
+$ ls Hello*
+Hello.lhs
+$ ghci
+GHCi, version 7.6.3: http://www.haskell.org/ghc/  :? for help
+Loading package ghc-prim ... linking ... done.
+Loading package integer-gmp ... linking ... done.
+Loading package base ... linking ... done.
+Prelude> :load Hello
+[1 of 1] Compiling Main             ( Hello.lhs, interpreted )
+Ok, modules loaded: Main.
+Preclude Main> :type main
+main :: IO ()
+Preclude Main> main
+Hello, world!
+Preclude Main> :quit
+Leaving GHCi.
+$ ls Hello*
+Hello.lhs
+$
+
+------------------------------------------
+
+* Compiling Haskell scripts
+
+$ ls Hello*
+Hello.lhs
+$ ghc Hello.lhs
+[1 of 1] Compiling Main             ( Hello.lhs, Hello.o )
+Linking Hello ...
+$ ls Hello*
+Hello  Hello.hi  Hello.lhs  Hello.o
+$ ./Hello
+Hello, world!
+$
+
+See https://downloads.haskell.org/~ghc/7.0.1/docs/html/users_guide/separate-compilation.html
+for more information about 
+the different file extensions
+------------------------------------------
+
+* main function of type IO()
+
+programs have a main function of type IO() in the module Main,
+which is run when the program starts
+
+Prelude Main> :type main
+main :: IO ()
+
+------------------------------------------

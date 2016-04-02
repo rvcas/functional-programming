@@ -1,0 +1,10 @@
+COP 4020 Lecture -*- Outline -*-
+
+	lecture 1
+* distributed
+     techniques for distributed programming, including fault
+     tolerance, DB, atomic transactions, 
+     reconfiguration, linking of proeceses
+
+* multicore
+     streaming, with hailstone example

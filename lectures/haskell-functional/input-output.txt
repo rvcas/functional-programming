@@ -1,0 +1,275 @@
+Lecture -*- Outline -*-
+
+------------------------------------------
+
+* Input and output in Haskell
+
+   Based on 
+
+   - material from Haskell.org
+     See "Introduction to IO" on the Haskell Wiki 
+     (https://www.haskell.org/haskellwiki/Introduction_to_IO)
+     
+   - Chapter 8 Input and Output 
+     Learn You a Haskell for Great Good!
+
+   - Sections 18.1 and 18.2 of the book
+     "Haskell - the craft of functional programming" 
+
+------------------------------------------
+   
+* Programs are modules with Main
+
+A program is a module, named Main, which exports main.
+
+The type of main is an I/O action.
+
+>module Main where   --
+>
+>main :: IO ()
+>main = ...
+
+The module declaration can be omitted, defaults to Main.
+
+------------------------------------------
+
+* Simple IO example: output to screen
+
+file Hello.lhs
+
+             HELLO WORLD
+
+This is the hello world program
+
+> main :: IO ()
+> main = putStrLn "Hello, world!"
+     
+------------------------------------------
+
+* Simple I/O example: glueing I/O actions together
+
+file HelloTwice.lhs
+
+> main :: IO ()
+> main = do
+>          putStrLn "Hello, world!"
+>          putStrLn "Hello, world!"
+
+------------------------------------------
+
+* Simple I/O example: input from keyboard, output to screen
+
+file SimpleIO.lhs
+
+> main :: IO()
+> main = do putStr "Hello! What is your name? "
+>           name <- getLine
+>           putStrLn ("Hello, " ++ name ++ "!")
+
+---------------------------------------------------------
+
+* I/O Programming
+
+Something of the type IO t is a *program* which will perform I/O
+and return a value of type t. 
+
+Among the I/O primitives of Haskell are
+
+putStr :: String -> IO ()
+getLine :: IO String
+
+Programs are built using the do notation to *sequence statements* of
+type IO t.
+
+See Read.hs and SumInts.hs
+
+------------------------------------------
+
+* Simple I/O example: infinite loop with input and output
+
+We have seen that we can read from the terminal - the standard input - 
+and write to the screen - the standard output.
+
+Terminal input can be configured to work in different ways, depending
+on the way that the input is buffered.
+
+The default is that input is unbuffered, and so each character is
+available to the IO program immediately as it is typed; a disadvantage
+of this mode is that it is impossible to use Ctrl-D to signal 
+'end of file' in the interactive input.
+
+See CopyInteract.hs 
+
+------------------------------------------
+
+* Program structure
+
+>main :: IO ()
+>main = do 
+>         vals <- inputAct
+>         let res = compute vals
+>         outputAct res
+
+In general, the type have the form:
+
+inputAction :: IO ValType
+outputAction :: ResType -> IO ()
+
+Examples:
+
+Main> :t getLine
+getLine :: IO String
+
+Main> :t getChar
+getChar :: IO Char
+
+Main> :t putStr
+putStr    putStrLn
+
+Main> :t putStrLn
+putStrLn :: String -> IO ()
+
+Main> :t put
+putChar   putStr    putStrLn
+
+Main> :t putChar
+putChar :: Char -> IO ()
+
+------------------------------------------
+
+* Simple I/0 example: input, compute, output
+
+file Greeting.lhs
+
+Example showing the structure
+input, computation, output
+
+> import Data.Char
+>
+> main = do
+>   putStrLn "What's you first name?"
+>   firstName <- getLine
+>   putStrLn "What's you last name?"
+>   lastName <- getLine
+>   let bigFirstName = map toUpper firstName
+>       bigLastName  = map toUpper lastName
+>   putStrLn $ "hey " ++ bigFirstName ++ " "
+>                     ++ bigLastName ++ " "
+>                     ++ ", how are you?"
+
+------------------------------------------
+
+* Picture: inputAct, computation, outputAct
+
+            +-------------+
+   inputAct |             | outputAct   
+   ========>| computation | =========>
+            |             |
+            +-------------+
+            
+------------------------------------------
+
+* Example: reverse line
+
+file ReverseLine.lhs
+
+> main = do
+>   line <- getLine
+>   if null line
+>     then return ()
+>     else do
+>       putStrLn $ reverse line
+>       main
+
+------------------------------------------
+
+* Example: read double from keyboard
+
+file Age.lhs
+
+> main = do
+>   putStrLn "How old are you? "
+>   line <- getLine
+>   real_age <- readIO line :: IO Double
+>   let age = if real_age > 21 then 21 else real_age
+>   putStrLn ("You look like " ++ (show age))
+
+------------------------------------------
+
+* Example: temperature conversion
+
+A program is a set of modules, one of which must be called Main
+and export the name "main".
+
+If a file does not have a module declaration,
+then it is implicitly named "Main", so that is what is done with this file.
+
+file TempConvertMain.lhs, the main program
+
+> import TemperatureConversion
+> import Control.Exception.Base
+>
+> main :: IO()
+> main = do
+>          catch (loop rcp) bye
+
+The loop function does an IO action forever,
+    until the action throws an exception
+
+> loop :: IO () -> IO ()
+> loop act = do
+>              act
+>              loop act
+
+The bye function takes an IOException, prints "bye!", and returns (),
+
+> bye :: IOException -> IO ()
+> bye _ = do
+>           putStrLn "bye!"
+>           return ()
+
+The rcp function reads a Double, then prints its conversion
+    
+> rcp :: IO ()
+> rcp = do
+>         ftemp <- ask
+>         putStrLn ("in degrees C is: " ++ show (convert ftemp))
+
+The ask function obtains a temperature in Farenheit from the user.
+
+> ask :: IO Double
+> ask = do
+>         putStr "Temp. in degrees F? "
+>         temp <- getLine
+>         f <- readIO temp
+>         return f
+
+file TemperatureConversion.lhs 
+
+module TemperatureConversion where
+
+convert :: Double -> Double
+convert f = (f - 32) * (5/9)
+
+---------------------------------------------------------
+
+* File I/O
+
+The Haskell I/O model also provides for reading from and writing and
+appending to files, by means of the functions
+
+readFile   :: FilePath -> IO String
+writeFile  :: FilePath -> String -> IO ()
+appendFile :: FilePath -> String -> IO ()
+
+where FilePath = String
+
+See CopyFiles.hs
+
+See 
+https://hackage.haskell.org/package/base-4.8.1.0/docs/System-IO.html
+for more ways of dealing with files in Haskell.
+
+Haskell also provides try and catch to handle errors and exceptions.
+
+---------------------------------------------------------

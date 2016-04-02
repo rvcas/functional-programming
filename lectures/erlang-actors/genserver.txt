@@ -1,0 +1,270 @@
+COP 4020 Lecture -*- Outline -*-
+
+* generalizing servers
+      based on chapter 16 of Joel Armstrong's book "Programming Erlang"
+
+------------------------------------------
+WHAT WOULD A GOOD FUNCTIONAL PROGRAMMER DO?
+
+We've seen several coding patterns in Erlang.
+So...
+
+
+
+------------------------------------------
+
+         ... make functional abstractions of these patterns!
+
+** RPC pattern
+------------------------------------------
+              RPC PATTERN
+
+Typical in Erlang code to make an RPC:
+
+    RA ! {self(), reserve},
+    receive
+        reserved -> ok
+    end
+
+Can we make an abstraction of this?
+
+rpc(Name, Request) ->
+
+
+
+
+
+
+------------------------------------------
+        ... Name ! {self(), Request},
+            receive
+                {Name, Response} -> Response
+            end.
+
+        This uses "Name" instead of Pid, as one can also "register" a
+        Pid with the Erlang name service...
+
+        Q: Can we do the same for entire servers?
+        sure...
+
+        From Chap. 16 of Armstrong's book 
+        "Programming Erlang" (Pragmatic, 2007):
+
+** server abstraction
+------------------------------------------
+    SERVER ABSTRACTION (VERSION 1)
+
+Typical server:
+
+-module(server1).
+-export([start/2, rpc/2]).
+
+start(Name, Mod) ->
+    register(Name, 
+             spawn(fun() -> loop(Name, Mod, Mod:init()) 
+                   end)).
+
+% ...rpc as above...
+
+loop(Name, Mod, State) ->
+    receive
+	{From, Request} ->
+            {Response, NewState} = Mod:handle(Request, State),
+            From ! {Name, Response},
+            loop(Name, Mod, NewState)
+    end.   
+
+------------------------------------------
+        Q: What does this do?
+           start spawns a process that runs loop.
+        Q: What is the initial state of the loop?
+           whatever Mod:init() returns
+        Q: What does the loop do?
+           it gets requests from clients, 
+           passes them to Mod:handle along with the CURRENT state,
+           gets back a pair of a response (message) and a new state,
+           sends the response back to the client,
+           loops around again with the new state
+
+------------------------------------------
+         GAUGE SERVER EXAMPLE
+
+Tracks a counter (an integer),
+responds to messages:
+
+count
+      replies 'counted', and increments counter
+
+value
+      replies {value_is, Counter}
+         where Counter is the counter's value
+
+{changeTo, New}
+      replies ok, and changes counter to New
+------------------------------------------
+
+      Q: How do we write this using server1?
+------------------------------------------
+-module(gauge_server).
+-export([init/0, count/0, value/0, changeTo/1, handle/2]).
+-import(server1, [rpc/2]).
+
+%% Calls that clients can make on this server
+count() -> 
+value() -> 
+changeTo(NewValue) -> 
+
+
+%% callback routines
+init()
+
+
+
+
+
+
+
+------------------------------------------
+% $Id$
+-module(gauge_server).
+-export([init/0, count/0, value/0, changeTo/1, handle/2]).
+-import(server1, [rpc/2]).
+
+%% Calls that clients can make on this server
+count() -> rpc(gauge_server, count).
+value() -> rpc(gauge_server, value).
+changeTo(NewValue) -> rpc(gauge_server, {changeTo, NewValue}).
+
+%% callback routines
+init() -> {state, 0}.
+handle(count, {state, Counter}) -> {counted, {state, Counter+1}};
+handle(value, {state, Counter}) -> {{value_is, Counter}, {state, Counter}};
+handle({changeTo, New}, {state, _Counter}) -> {ok, {state, New}}.
+
+
+      ... try this out, like:
+2> server1:start(gauge_server, gauge_server).
+true
+3> gauge_server:count().
+counted
+4> gauge_server:value().
+{value_is,1}
+5> gauge_server:count().
+counted
+6> gauge_server:value().
+{value_is,2}
+7> gauge_server:changeTo(7).
+ok
+8> gauge_server:value().
+{value_is,7}
+9> gauge_server:count().
+counted
+10> gauge_server:value().
+{value_is,8}
+
+
+        Q: Do you see how that works?
+
+------------------------------------------
+              FOR YOU TO DO
+
+Using server1, write a module 
+shoppinglist that tracks a list of atoms,
+and responds to the messages:
+
+{add, Item}
+        responds 'added' and remembers Item in the list
+
+getList
+        responds with {list_is, Lst}, 
+        where Lst is the remembered list (in some order)
+
+clear
+        responds 'cleared' and forgets all items in the list
+------------------------------------------
+
+        Q: What separation of concerns does this coding style allow?
+           server1 handles all of the Erlang communication, etc.
+           gauge_server handles the base functionality.
+
+        Q: What other non-functional concerns might such a higher-order server
+           handle?
+              transactions, hot code swapping, ...
+              That is what gen_server does...
+
+** using the real gen_server
+     From section 16.2 of "Programming Erlang"
+------------------------------------------
+   3 SIMPLE STEPS FOR USING GEN_SERVER
+
+1. Decide on callback module name.
+
+2. Write the client interface functions
+
+3. Write the callback functions in the callback module
+
+------------------------------------------
+
+        Think of a server as an ADT
+          (which it is from the client's point of view)
+
+*** example, running average of last 3  
+------------------------------------------
+ RUNNING AVERAGE OF 3 MEASUREMENTS SERVER
+
+module name: runavg
+
+interface functions:
+
+   note(Measurement) records Measurement,
+          returns 'ok'
+
+   average() returns the current average
+       if at least 3 measurements have been given
+
+Erlang code for these:
+
+
+
+
+
+
+
+------------------------------------------
+
+        see module runavg.erl
+
+-module(runavg).
+-behaviour(gen_server).
+%% API
+-export([start_link/0, note/1, average/0]).
+
+%% gen_server callbacks
+-export([init/1, handle_call/3, handle_cast/2, handle_info/2,
+	 terminate/2, code_change/3]).
+
+-define(SERVER, ?MODULE). 
+
+%%% API
+note(Measurement) ->
+     gen_server:call(?MODULE, {note, Measurement}).
+average() ->
+    gen_server:call(?MODULE, average).
+
+start_link() ->
+    gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
+
+init([]) ->
+    {ok, {0.0, 0.0, 0.0}}.
+
+handle_call({note,Measurement}, _From, {_M1,M2,M3}) ->
+    Reply = ok,
+    {reply, Reply, {M2,M3,Measurement}};
+handle_call(average, _From, {M1,M2,M3}) ->
+    Avg = (M1+M2+M3)/3.0,
+    {reply, Avg, {M1,M2,M3}}.
+
+handle_cast({note,Measurement}, {_M1,M2,M3}) ->
+    {noreply, {M2,M3,Measurement}}.
+
+% rest of the required callbacks are left as in the emacs template.

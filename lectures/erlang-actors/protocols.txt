@@ -1,0 +1,113 @@
+COP 4020 Lecture -*- Outline -*-
+
+* Simple message protocols (5.3)
+
+  Q: What's a protocol?
+------------------------------------------
+           PROTOCOLS (5.3)
+
+
+def: a *protocol* is
+
+
+
+
+
+
+------------------------------------------
+  ... a way to realize some information exchange 
+       between two or more parties using a specified
+       sequence of message exchanges
+
+** RMI (5.3.1)
+
+   draw sequence diagrams for these
+------------------------------------------
+   PROTOCOL EXAMPLE:
+      RMI (= RPC)
+
+% Example: file RMI.oz
+
+proc {ServerProc Msg}
+   case Msg
+   of calc(X Y) then
+      Y=X*X+2.0*X+2.0
+   end
+end
+
+Server = {NewPortObject2 ServerProc}
+
+proc {ClientProc Msg}
+   case Msg
+   of work(Y) then Y1 Y2 in
+      {Send Server calc(10.0 Y1)}
+      {Wait Y1}
+      {Send Server calc(20.0 Y2)}
+      {Wait Y2}
+      Y=Y1+Y2
+   end
+end
+
+Client = {NewPortObject2 ClientProc}
+
+{Browse {Send Client work($)}}
+------------------------------------------
+             See RMI.oz
+
+        Note how the RMI's combination of Send + Wait
+           is like a procedure call
+
+        Q: Are these port objects symmetric?
+        No, the server doesn't know about the client.
+
+        Q: Are message executed concurrently by the server?
+        No, sequentially.
+            They recommend this as simplest to program and reason about
+            (esp. if there is internal state)
+            Why?
+
+        Q: So is there concurrency inside the server?
+        No (at least not necessarily)
+        This is a key point!
+
+** Asynchronous RMI (5.3.2)
+
+   same as RMI, but client continues after send without waiting.
+
+   Q: How would you make the sends asynchronous?
+   Just don't wait, the send is already asynchronous.
+
+** Callbacks (5.3.3-5)
+
+------------------------------------------
+            CALLBACKS (5.3.3-5.3.5)
+
+def: a *callback* occurs when
+
+
+
+
+
+
+
+------------------------------------------
+   Q: What's a callback?
+   ... when the server sends a message to the client (to get more info)
+
+   Q: How would you implement callbacks?
+
+   2 techniques:
+     - client doesn't wait for the reply, uses a thread to wait
+         (end to end synchronization through dataflow variables,
+         see RMIcallbackthread.oz)
+     - pass a continuation (record or closure) to server
+         saves on threads, see 5.3.4-5
+
+   Q: What if the client's callback has to call the server again?
+   Then neither can wait
+
+** Exceptions (5.3.6)
+
+   Q: What would you do if the server can encounter exceptions?
+   Pass result back a tagged record, indicating success or exception,
+   client can raise exception if finds it.

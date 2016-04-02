@@ -1,0 +1,8 @@
+An interactive calculator is implemented in the subdirectory \parser.
+Check out the files
+
+Store.hs
+Parser.hs
+Expressions.hs
+ExpressionsParser.hs
+Calculator.hs

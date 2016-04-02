@@ -1,0 +1,653 @@
+Com S 342 meeting -*- Outline -*-
+
+* Call by Reference (EOPL 3.8, pp. 107-114)
+
+   Note: see below for conventions used to draw pictures.
+
+** Informal overview
+
+*** pictures and basic meaning
+------------------------------------------
+       CALL BY REFERENCE
+
+let t = 5
+    u = 6
+    v = 7
+    w = 8
+in
+   (proc (a, b)
+     (proc (x, y, z) % picture for here
+         set y = 13
+      a b 6)
+    3 v)
+
+          t   u   v   w
+        [ * | * | * | * ]
+          |   |   |^  |
+          v   v   v \ v
+          5   6   7 | 8
+                    \
+                     \
+                     |\
+                     | \
+                     |  \
+            a   b    |   \
+          [ * | * ]  |    \
+          ^ |   |    |     \
+         /  v   \---/      |
+        /   3              |
+        |                  |
+        |     x   y   z    |
+        |   [ * | * | * ]  |
+        |     |   |   |    |
+        ------/   |   v    |
+                  |   6    |
+                  \--------/
+
+              set y = 13
+------------------------------------------
+
+        These are highly schematic pictures of the extended-env ribs
+
+        It's useful to relate this to more detailed pictures.
+
+        Note that these are upside down from the book's drawings,
+        but we're trying to consistently draw stacks growing down the page.
+
+*** motivation
+	Generally, it's a good thing that a procedure can't change
+	variables in its caller (although it can mutate objects passed).
+	But there are times when you want to encapsulate a pattern
+	of assignments to variables, and then you need...
+
+------------------------------------------
+    CALL-BY-REFERENCE MOTIVATION
+
+let swap = proc(x,y)
+                let temp = 0
+                in begin
+                     set temp = x;
+		     set x = y;
+                     set y = temp
+		   end
+   a = 3
+   b = 4
+in begin
+    (swap a b);
+    list(a,b)
+   end
+
+
+
+
+
+
+
+------------------------------------------
+
+	Draw picture of what happens to this expression in call-by-value
+		show what we want in call by reference.
+
+        Q: What does this in C++?
+                use of & for a formal:
+
+                void swap(int &x, int& y) { int temp = x; x = y; y = temp; }
+
+        Q: Can you write swap in Erlang? In Java?
+           no and no, both only use call by value
+
+------------------------------------------
+            FOR YOU TO DO
+
+Draw a picture of what happens with the
+following with call by reference:
+
+
+let assign2 = proc(v1, v2, e1, e2)
+                  begin
+		    set v1 = e1;
+		    set v2 = e2
+	          end
+in let swap4 = proc(x,y)
+                (assign2 x y y x)
+       a = 3
+       b = 4
+in begin
+     (swap4 a b);
+     list(a, b)
+   end;
+
+
+
+
+
+
+
+
+------------------------------------------
+
+	Q: Can you do make the above work in C++ or Pascal?  How?
+		use the first two parameters by reference, the others by value
+
+*** passing non-variables by reference
+
+	Old FORTRAN joke: how do you change 2 to be 3?
+
+		SUBROUTINE F(X)
+		  X = 3
+		  RETURN
+		END
+
+		CALL F(2)
+                PRINT 20, 2+2
+             20 FORMAT I10
+
+
+------------------------------------------
+     WHAT IF PASS A VALUE BY REFERENCE?
+
+let c = 3
+    p = proc (x) set x = 5
+in begin
+     (p add1(c));
+     c
+   end
+
+
+
+
+------------------------------------------
+
+	Q: What are the choices?
+		give an error (at compile time?)
+		make it work wrong (modify location containg constant)
+			or right (allocate a location for the value, pass that)
+
+** model (interpreter/language changes) for call-by-reference
+
+*** what kinds of parameters
+	Q: What kinds of things can we pass as arguments?
+		values, variables
+
+	We will call these "targets" (of assignments, hence L-values)
+------------------------------------------
+ TARGETS: WHAT CAN BE PASSED BY REFERENCE?
+
+The *target* is a location that is either
+   - direct i.e., that contains a value, or
+   - indirect, i.e., that contains a
+      reference to a direct target
+
+------------------------------------------
+
+        However, we want to limit the indirect targets so that they
+        always point to a direct target, not to a reference containing
+        another indirect target.  This makes it so the interpreter
+        doesn't have to chains of targets (efficiency and simplicity).
+
+        So targets look like either
+
+           [direct-target | *-]--> 3
+        or
+           [indirect-target | *-]-->[a-ref | 2 | * ]
+                                                 |
+                                                 v
+                                                [ * | * | * | * | ... ]
+                                                          |
+                                                          v
+                                                       [direct-target | *-]->3
+
+        We draw them like on p. 113 (see also p. 101)
+
+            [ *-]--> 3
+         or
+            [ *-]---\
+                     v
+            [ * | * | * | * | ... ]
+                          |
+                          v
+                          3
+
+------------------------------------------
+  HOW DOES ASSIGNMENT WORK?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+------------------------------------------
+
+...(define setref!
+     (lambda (ref expval)
+       (let ((ref
+              (cases target (primitive-deref ref)
+               (indirect-target (ref1) ref1)
+               (else ref))))
+         (primitive-setref! ref (direct-target expval)))))
+
+     Using the else here makes it work for call-by-name and need.
+
+*** domains and data structures
+
+	What is passed in call-by reference is some kind of target (L-value)
+
+------------------------------------------
+               DOMAINS FOR
+  CALL BY REFERENCE WITH INDIRECT ARRAYS
+
+Domains:
+  Denoted-Value = Ref(Target)
+  Target =
+
+  Expressed-Value = Number + ProcVal
+
+------------------------------------------
+	...  Direct-Target(Expressed-Value)
+           + Indirect-Target(Ref(Direct-Target(Expressed-Value)))
+
+*** changes to interpreter
+
+	see $PUB/lib342/ch3-8ref.scm for the whole thing
+
+        we have to consider each place where subexpressions are evaluated
+
+        Q: Where in the interpreter do we change how parameters are evaluated?
+             In eval-rands...
+
+------------------------------------------
+ CHANGES FOR CALL-BY-REFERENCE
+
+(deftype eval-rands
+  (-> ((list-of expression) environment)
+      (list-of target)))
+(define eval-rands
+  (lambda (rands env)
+    (map (lambda (x) (eval-rand x env))
+          rands)))
+
+;;; from EOPL2e, p. 112
+
+(deftype eval-rand
+  (-> (expression environment) target))
+(define eval-rand
+  (lambda (rand env)
+    (cases expression rand
+      (var-exp (id)
+        (indirect-target
+          (let ((ref
+                 (apply-env-ref env id)))
+            (cases target (primitive-deref
+                           ref)
+              (direct-target (expval) ref)
+              (indirect-target (ref1) ref1)
+              ))))
+      (else
+        (direct-target
+          (eval-expression rand env))))))
+
+------------------------------------------
+
+*** Changes to procval
+
+    Q: So what gets passed to apply-procval then?
+       targets
+    Q: So does that mean we have to change the procval ADT?
+       yes, the typings
+
+------------------------------------------
+        CHANGES TO PROCVAL
+
+(deftype apply-procval
+   (-> (procval (list-of target))
+        Expressed-Value))
+
+(define apply-procval
+  (lambda (proc targs)
+    (cases procval proc
+      (closure (ids body env)
+        (eval-expression body
+         (extend-env ids targs env))))))
+------------------------------------------
+
+*** Changes to environment and init-env
+
+    Q: Do environments have to change to deal with targets?
+       Yes, we need to store a target, and what kind has to be
+       determined by the interpreter (not by the environment ADT)
+    
+------------------------------------------
+   ENVIRONMENT MAPS NAMES TO TARGETS
+
+(deftype apply-env-ref
+  (-> (environment symbol)
+      (ref-of target)))
+
+(deftype extend-env
+  (-> ((list-of symbol) (list-of target)
+        environment) environment))
+
+------------------------------------------
+
+        See $PUB/lib342/ch3-8ref.scm for details of implementation.
+
+        Q: Does anything else have to change because of this?
+
+------------------------------------------
+      CHANGES TO INIT-ENV
+
+(deftype init-env (-> () environment))
+(define init-env 
+  (lambda ()
+    (extend-env
+      '(i v x)
+      (map direct-target 
+           (map number->expressed
+               '(1 5 10)))
+      (empty-env))))
+------------------------------------------
+
+*** implications
+
+**** let expressions
+    Q: Why do we make direct targets for expressions other than variables?
+       because we need a location/cell for them
+
+------------------------------------------
+         WHAT SHOULD LET DO?
+
+let three = 3
+in let x = three
+   in begin
+        set x = +(x, 1);
+        three
+      end
+
+------------------------------------------
+
+      If we use the syntactic sugar idea,
+      then
+            let x = three in begin ... end
+         == (proc (x) begin ... end  three)
+
+      and so we should make x alias 3, so we should get 4.
+
+      On the other hand, if we want to assign to three, we can just do that,
+      so why alias three and x?
+
+      To prevent these aliases we use the call-by-value behavior for let
+
+(define eval-expression
+  (lambda (exp env)
+    (cases expression exp
+      ;; ...
+      (let-exp (ids rands body)
+        (let ((args (eval-let-exp-rands rands env)))
+          (eval-expression
+	   body
+	   (extend-env ids args env))))
+      )))
+
+(deftype eval-let-exp-rands
+  (-> ((list-of expression) environment) (list-of target)))
+(define eval-let-exp-rands
+  (lambda (rands env)
+    (map (lambda (x) (eval-let-exp-rand x env)) rands)))
+
+(deftype eval-let-exp-rand
+  (-> (expression environment) target))
+(define eval-let-exp-rand
+  (lambda (rand env)
+    (direct-target (eval-expression rand env))))
+
+**** primitives
+
+     Q: What choices do we have for calls to primitives?
+------------------------------------------
+       WHAT ABOUT PRIMITIVES?
+
+(deftype apply-primitive
+ (-> (primitive (list-of Expressed-Value))
+     Expressed-Value))
+
+Can we use eval-rands
+  for arguments to apply-primitive?
+
+
+
+
+
+
+
+------------------------------------------
+        No, have to use...
+
+(deftype eval-primapp-exp-rands
+  (-> ((list-of expression) environment)
+      (list-of Expressed-Value)))
+(define eval-primapp-exp-rands
+  (lambda (rands env)
+    (map (lambda (x)
+            (eval-expression x env))
+         rands)))
+
+** set expressions with call by reference
+------------------------------------------
+            FOR YOU TO DO
+    DRAW PICTURE FOR THE FOLLOWING
+
+let a = 0
+    b = 7
+in let g = proc(y, z)
+            begin
+              set y = z;
+              %% draw picture for here
+              0
+           end
+   in begin
+        (g a b);
+        list(a, b)
+   end
+
+------------------------------------------
+
+        Note that there is no arrow from y to z or from a to b.
+
+** aliasing
+
+	without call by reference,
+		each variable has its own storage cell
+	with call by reference this isn't true.
+------------------------------------------
+	   VARIABLE ALIASING
+
+def: variables x and y are aliases
+     if they both denote the same
+     location.
+
+Thus, changing x's value also changes y's
+------------------------------------------
+
+------------------------------------------
+        VARIABLE ALIASING CAUSES
+           REASONING PROBLEMS
+
+Does the following correctly add
+the values of a and b into c,
+storing the result in c?
+
+let addInTo = proc(c,a,b)
+		  begin set c = b;
+                        set c = +(c,a)
+		  end
+in ...
+------------------------------------------
+
+------------------------------------------
+   ALIASES CAUSE NAIVE REASONING TO FAIL
+
+let addInTo = proc(c,a,b)
+		  begin set c = b;
+                        set c = +(c,a)
+		  end
+in let x = 3
+       y = 4
+in begin (addInTo x x y);
+         x
+   end;
+
+
+
+
+
+
+
+
+------------------------------------------
+
+
+	Q: Can you draw pictures of how this executes with call by reference?
+	Q: What does the last expression return?
+		8
+
+        The problem is that readers assume that each of c, a, and b is
+        a separate location, but it's not with call by reference.
+
+        To reason about such procedures, one has to imagine all
+        possible patterns of aliasing, and prove the code correct for
+        each one!
+          ==> Aliasing makes programs hard to reason about
+
+        See also exercise 3.52
+
+
+** call-by-value-result (exercise 3.55)
+
+     We can avoid some aliasing by using call by value-result
+
+     This also validates the idea that each formal has its own location
+
+     idea:
+           pass values: assign actuals to fresh locations for the formals
+                        at start of call
+           pass result: assign formals back to the actuals
+                        at end of call
+
+     Q: Would this work for swap?
+     Q: What happens if you call a procedure and use the same thing
+        for two result parameters?
+
+        have to decide what order to copy them back in, dangerous
+
+     variations: call by value, call by result
+     Ada calls these "in" and "out" parameters, and uses "in out" for both
+
+     Work earlier examples, draw pictures,
+      show interpreter if not a HW problem
+
+** mixes of mechanisms (exercise 3.53)
+
+     Q: Can we have both call-by-value and call-by reference?
+        yes, Pascal, C++, both have both of these
+     Q: How do you know what to pass by reference and what by value?
+        declare argument positions passed each way
+     Q: Is this more expressive?
+        yes, usually want call by value
+
+** arrays (exercise 3.54)
+   this gets at a host of issues with aggregate data structures:
+        arrays, records/structs, and objects in OO languages
+
+*** array models (see EOPL first edition, chapter 6)
+------------------------------------------
+           ARRAY MODELS
+
+Indirect arrays (Scheme, Java):
+
+    stack                    heap
+
+   a [ *-]--------------->[ * | * | * ]
+                            |   |   |
+                            v   v   v
+                            1   2   3
+
+
+Direct arrays (C/C++, Pascal, Ada):
+
+    stack          heap
+
+   a [1|2|3]
+
+------------------------------------------
+
+        This has tremendous consequences for the semantics
+
+------------------------------------------
+         EXAMPLE
+
+letarray a[2]; b[2]
+in let p = proc(x,y) begin
+                      set y = b;
+                      set x = 5
+                     end
+   in begin
+       set a[0] = 1; set a[1] = 2;
+       set b[0] = 4; set b[1] = 6;
+       (p a[1] a);
+       list(a[0],a[1],b[0],b[1])
+      end
+
+
+
+
+
+------------------------------------------
+
+
+        Q: What does this do under call-by-value in the indirect model?
+        Q: What does this do under call-by-reference in the indirect model?
+                returns (4 6 4 6)
+        Q: What does this do under call-by-value in the direct model?
+        Q: What does this do under call-by-reference in the direct model?
+
+------------------------------------------
+	FOR YOU TO DO
+
+What does this return under
+call by reference in the:
+  (i) indirect and (ii) direct models?
+
+letarray u[3]; v[2]
+in let p = proc (x)
+              begin set x = v;
+                    set x[0] = 0
+              end
+in begin set u[0] = 5; set u[1] = 6;
+         set u[2] = 4;
+         set v[0] = 3; set v[1] = 8;
+         (p u);
+         list(v[0], u[0])
+   end
+
+
+
+
+
+
+
+
+
+
+------------------------------------------
+
+	Draw, or have them draw,
+	what happens when this executes in the indirect or direct model?
+

@@ -1,0 +1,1 @@
+addPairs list = [a+b | (a,b) <- list]

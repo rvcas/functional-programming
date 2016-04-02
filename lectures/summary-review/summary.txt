@@ -1,0 +1,230 @@
+COP 4020 Lecture -*- Outline -*-
+
+* course summary
+
+** review of syllabus
+------------------------------------------
+    WHAT WE STUDIED
+
+Functional Model with Haskell
+   - Pattern Matching
+   - Follow the Grammar
+   - Functional Abstractions 
+          map, filter, foldr, foldWindowLayout...
+   - Representing Data as Functions
+
+
+Message Passing Model with Erlang
+   - Functional/Sequential programming
+   - Processes 
+       spawn, servers
+   - Message send (!) and receive
+       RPC protocol
+
+------------------------------------------
+
+** Comparisons
+
+   Q: What are the most important programming tactics in each language?
+      In Haskell, following the grammar, currying appropriately
+           (planning ahead)
+      In Erlang, RPC, servers, also ways to deal with failures...
+   Q: What are the semantic differences between Haskell and Erlang?
+      Haskell is lazy, Erlang is eager (call by value)
+      Haskell has records built-in and well integrated (Erlang doesn't)
+      Haskell's type system is more strict
+          (doesn't let you compare different types with ==, for example)
+          Erlang's operations work on all values
+      Haskell's type system separates out effects from pure computations
+          (that may make debugging difficult, at least unusual)
+      Erlang has processes (spawn) that are explicit
+          in Haskell you need to use the Par monad to get explicit threads
+      Erlang has message send and receive
+   Q: What is similar semantically between Haskell and Erlang?
+      Both have static scoping
+      Both have libraries of list operations (map, foldr, ...)
+      Both have pattern matching
+      Both have variables that are not mutable
+      Both have lots of immutable data types
+      Both have tuples and recursive data
+
+*** static vs. dynamic type checking
+------------------------------------------
+     STATIC VS. DYNAMIC TYPE CHECKING
+
+Which language has which kind of type checking?
+
+
+
+What are the advantages of each kind of type checking?
+
+
+
+
+What are the drawbacks of each kind?
+
+
+
+
+------------------------------------------
+
+*** parallelism
+     Q: How does concurrency work in Erlang?
+        spawn creates a process, no shared data
+        single assignment variables: no mutation 
+            (aside from the DB mnesia)
+            so sharing of data is not a source of race conditions
+        in a typical server loop:
+           handles one message at a time,
+           no other messages being handled concurrently
+     Q: What are the advantages and disadvantages of
+        asynchronous message sending?
+          advantages: primitive, can build RPC out of it
+                      allows a single process to contact others 
+                          without blocking the server
+          disadvantge: if you send a message and don't wait for a response,
+                       then you can't be sure if the receiver has gotten it
+                       (so there's an inherent race condition).
+
+------------------------------------------
+ DIFFERENCES IN APPROACHES TO PARALLELISM?
+
+
+
+
+
+
+
+
+
+
+
+
+------------------------------------------
+
+        Q: How does concurrency differ between Haskell, Erlang, and Java?
+      ... All have cheap threads
+          Haskell was mostly implicit parallelism, sparking threads
+          Haskell's strategy mechanism allows 
+               separation of parallelism and algorithm
+          Erlang can do a parallel merge (without deterministic turn policy)
+        
+** language design and model ideas
+------------------------------------------
+        WHAT DID WE LEARN ABOUT 
+      PROGRAMMING LANGUAGE DESIGN?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+------------------------------------------
+
+        Q: What primitives are helpful, powerful?
+
+             - structured, recursive data (Haskell's data defs)
+                 How does that relate to Java?
+             - closures, higher-order functions
+             - parallel tasks (par or spawn)
+             - message passing (send (!), receive)
+
+        Q: What are some good techniques for defining languages?
+                grammatical-based explanation and semantics
+                layered use of models (e.g., functional within message passing)
+
+                language with sugars
+
+        Q: What are some principles of good language design?
+                regularity, uniformity
+
+** Programming lessons
+	Q: What did you learn about programming from each?
+------------------------------------------
+  WHAT DID WE LEARN ABOUT PROGRAMMING?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+------------------------------------------
+
+*** Declarative
+
+    - Following the grammar
+    - Using examples to help plan programming, generalization
+    - Can use lazy evaluation to program with infinite streams
+    - Data abstraction by scoping (export/import)
+    - Higher-order functions can encapsulate patterns
+
+*** Declarative parallel programming (in Haskell)
+
+    - Immutable data is easy to share
+    - Need to think about granularity of parallel tasks
+    - Keep all cores busy
+
+*** Actor parallelism (in Erlang)
+
+    - Asynchronous message passing can simulate other primitives (RPC)
+    - Client server programming
+    - Design by thinking about: state and how each message affects state
+    - Runtime system seems to spread processes among cores (?)
+
+*** Comparison
+        Q: What are the advantages and disadvantages (limits) of each paradigm?
+                (see also the styles-vs-problems.txt file)
+
+        Q: How do they compare for making programming easier?
+
+        research question: Can we combine the advantages somehow?
+
+
+** what's the value of all this?
+------------------------------------------
+        WHAT'S THE VALUE OF ALL THIS?
+
+Programming is language design:
+ - make it easy for your users
+ - give them good notation
+      (syntactic sugars when helpful!)
+ - provide primitives (tools, not solutions),
+   ways to combine them,
+   and abstraction facilities
+
+
+------------------------------------------
+
+** where to go from here
+------------------------------------------
+       WHERE TO GO FROM HERE
+
+Further classes:
+  - COP 5021 Program Analysis 
+
+
+
+------------------------------------------
+

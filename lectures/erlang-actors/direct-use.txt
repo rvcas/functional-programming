@@ -1,0 +1,319 @@
+COP 4020 Lecture -*- Outline -*-
+
+* Using the message-passing model directly (5.6)
+
+  ways of using the model other than just programming with port objects
+
+** port objects that share a single thread (5.6.1)
+
+------------------------------------------
+         SHARING A SINGLE THREAD
+
+Protocol:
+
+  {AddPortObject PO Proc}
+  {Call PO Msg}
+
+System/scheduler created by
+
+  NewPortObjects
+------------------------------------------
+        see below...
+
+------------------------------------------
+          NEWPORTOBJECTS (FIG 5.14)
+
+declare
+proc {NewPortObjects ?AddPortObject ?Call}
+   Sin P={NewPort Sin}
+
+   proc {MsgLoop S1 Procs}
+      case S1
+      of add(I Proc Sync)|S2 then
+         Procs2 in
+         Procs2={AdjoinAt Procs I Proc}
+         Sync=unit
+         {MsgLoop S2 Procs2}
+      [] msg(I M)|S2 then
+         try {Procs.I M}
+         catch _ then skip end
+         {MsgLoop S2 Procs}
+      [] nil then skip end
+   end
+in
+   thread {MsgLoop Sin procs} end
+
+   proc {AddPortObject I Proc}
+   Sync in
+      {Send P add(I Proc Sync)}
+      {Wait Sync}
+   end
+
+   proc {Call I M}
+      {Send P msg(I M)}
+   end
+end
+
+------------------------------------------
+        See NewPortObjects.oz
+
+        Q: How does that work?
+        This is coroutining?
+
+        Q: What do you have to be careful of if you use this?
+        Not to wait inside an object for a calculation of another
+            state has to be global or stored in messages
+        Messages are continuations (no return)
+
+        Q: What are the advantages and disadvantages?
+           more efficient - no thread scheduling
+           harder to write (as above)
+
+** Concurrent queue
+
+   Q: How would you program a concurrent queue using ports?
+
+------------------------------------------
+           CONCURRENT QUEUE
+
+NewQueue
+   returns
+      queue(put:PutProc get:GetProc)
+   record
+
+% Example: in QueueTest.oz
+\insert 'NewQueue.oz'
+declare Q in
+thread Q={NewQueue} end
+{Q.put 1}
+{Browse {Q.get $}}
+{Browse {Q.get $}}
+{Browse {Q.get $}}
+{Q.put 2}
+{Q.put 3}
+
+------------------------------------------
+        see QueueTest.oz
+
+% Wrong version (fig 5.17)
+% file NewQueueWrong.oz
+declare
+fun {NewQueue}
+   Given GivePort={NewPort Given}
+   Taken TakePort={NewPort Taken}
+in
+   Given=Taken
+   queue(put:proc {$ X} {Send GivePort X} end
+         get:proc {$ ?X} {Send TakePort X} end)
+end
+
+    What's wrong with that?
+    Doesn't work because port streams are read-only views,
+    so this blocks trying to get values of both Given and Taken.
+
+    How to fix this?
+    Have to match up the elements, not the whole streams.
+    Have to do that in a thread, so as not to block.
+
+% Corrected version (fig 5.18)
+% file NewQueue.oz
+declare
+fun {NewQueue}
+   Given GivePort={NewPort Given}
+   Taken TakePort={NewPort Taken}
+   proc {Match Xs Ys}
+      case Xs # Ys
+      of (X|Xr) # (Y|Yr) then
+         X=Y {Match Xr Yr}
+      [] nil # nil then skip
+      end
+   end
+in
+   thread {Match Given Taken} end
+   queue(put:proc {$ X} {Send GivePort X} end
+         get:proc {$ ?X} {Send TakePort X} end)
+end
+
+      Can we get along without writing Match ourselves?
+      Yes, since unification works that way.
+      Suffices to run unification in own thread:
+
+% file NewQueueFixed.oz
+declare
+fun {NewQueue}
+   Given GivePort={NewPort Given}
+   Taken TakePort={NewPort Taken}
+in
+   thread Given=Taken end
+   queue(put:proc {$ X} {Send GivePort X} end
+         get:proc {$ ?X} {Send TakePort X} end)
+end
+
+** thread termination detection (5.6.3) (skip?)
+
+------------------------------------------
+      TERMINATION DETECTION OF THREADS
+
+Problem:
+
+  thread S end
+
+  - can create new threads inside S
+  - want to know when they all finish
+  - no change to interfaces
+
+
+Specification:
+
+  {NewThread P ?SubThread} 
+    -- creates thread to run P,
+       initializes procedure SubThread
+    -- returns only after P
+       and all subthreads are finished
+  {SubThread P2}
+    -- creates a subthread running P2
+
+------------------------------------------
+
+      Q: How would you write this?
+      keep an integer count of active threads,
+      make SubThread increment the count when starting a thread,
+      decrement when it finishes.
+
+% file NewThread.oz 
+declare
+local
+   proc {ZeroExit N Is}
+      case Is of I|Ir then
+         if N+I\=0 then {ZeroExit N+I Ir} end
+      end
+   end
+in
+   proc {NewThread P ?SubThread}
+      Is Pt={NewPort Is}
+   in
+      proc {SubThread P}
+         {Send Pt 1}
+         thread
+            {P} {Send Pt ~1}
+         end
+      end
+      {SubThread P}
+      {ZeroExit 0 Is}
+   end
+end
+
+      Q: Is there a relative ordering defined on sends from different threads?
+      No, that's not the right semantics for distributed systems.
+      Instead, get an "eventual slot-reserving semantics, where the
+      Send operation" eventually reserves a slot.
+
+      To fix this, need to program the slot-reserving semantics using
+      the eventual slot-reserving semantics.
+
+% File NewSPort.oz
+declare
+proc {NewSPort ?S ?SSend}
+   S1
+   P={NewPort S1}
+in
+   proc {SSend M} X in
+      {Send P M#X} {Wait X}
+   end
+   thread
+      S={Map S1 fun{$ M#X} X=unit M end}
+   end
+end
+
+** Eliminating useless sequential dependencies (5.6.4) (skip)
+
+------------------------------------------
+   FILTER HAS SEQUENTIAL DEPENDENCIES
+
+declare
+fun {Filter L F}
+   case L
+   of nil then nil
+   [] X|Lr then
+      if {F X} then X|{Filter Lr F}
+      else {Filter Lr F}
+      end
+   end
+end
+
+declare A B
+thread Out={Filter [A 5 1 B 4 0 6]
+                   fun {$ X} X>2 end}
+end
+{Browse Out}
+------------------------------------------
+
+        This blocks, even though we know that 5 and 4 and 6 should be
+        in the output.
+
+        The book gives a solution that gives up on ordering of the output.
+        (NewPortClose is on the book's website in .ozrc.)
+        (Barrier is figure 4.22, see Barrier.oz)
+
+% file ConcFilter.oz (fig 5.20)
+declare
+proc {ConcFilter L F ?L2}
+   Send Close
+in
+   {NewPortClose L2 Send Close}
+   {Barrier
+      {Map L
+         fun {$ X}
+            proc {$}
+               if {F X} then {Send X} end
+            end
+         end}}
+   {Close}
+end
+
+
+        We can do better (?) by using the list monad:
+           return nil if the predicate fails or [X] if {P X} is true:
+
+% file Pred2ListMonad
+declare
+fun {Pred2ListMonad Pred}
+   fun {$ X} if {Pred X} then [X] else nil end end
+end
+
+% file Filter2.oz
+declare
+fun {Filter2 L F}
+   for X in L collect: C
+   do
+      Slot
+   in
+      {C Slot}
+      thread
+	 if {F X} then Slot=[X]
+	 else Slot=nil end
+      end
+   end
+end
+
+% file Filter2Test.oz
+\insert 'Filter2.oz'
+\insert 'Pred2ListMonad.oz'
+declare A B Out Out2
+MyList=[A 5 1 B 4 0 6]
+MyFun=fun {$ X} X>2 end
+thread Out={Filter2 MyList MyFun} end
+{Browse Out}
+local [ListMonad] = {Module.link ['ListMonad.ozf']}
+in
+   % Return = ListMonad.return
+   Bind = ListMonad.bind
+end
+thread Out2={Bind MyList
+	     {Pred2ListMonad MyFun}}
+end
+{Browse Out2}
+{Delay 2000}
+A=7
+{Delay 4000}
+B=1

@@ -1,0 +1,83 @@
+Homework 1
+----------
+
+There are 4 problems and each problem is worth 5 points.
+
+
+Problem 1:
+----------
+
+Implement the function 
+  
+  average :: Fractional a => [a] -> a
+
+that takes a list of numbers [x1, x2, ... xn] and 
+returns their average (arithmetic mean), i.e., 
+the value computed according to the formula: 
+
+  (x1 + x2 + ... + xn) / n
+
+Your implementation has to be *tail recursive*.  To do that you have 
+to complete the implementation of the second case of the function 
+average_iter in the file AverageTailRecursive.hs.
+
+Test your solution with AverageTailRecursiveTests.hs.
+
+Problem 2:
+----------
+
+Implement the functions
+
+  zip3 :: [a] -> [b] -> [c] -> [(a,b,c)]
+
+  unzip3 :: [(a,b,c)] -> ([a], [b], [c])
+
+that generalize the functions zip and unzip from pairs to triples.  
+You must not use the internal Haskell implementations
+of both functions.
+
+Complete the implementation of both functions in the file
+Zip3unzip3.hs and test your solution with 
+Zip3unzip3Tests.hs.
+
+
+Problem 3:
+----------
+
+Given the data structure
+
+  data Tree a = Nil | Node a (Tree a) (Tree a) 
+                  deriving (Eq, Show)
+
+implement the function
+
+  stratify :: Tree a -> [a]
+
+that lists the elements of the tree in the following order:
+- first, all elements at depth 1 from left to right,
+- second, all elements at depth 2 from left to right,
+- etc.
+
+Put your solution in the file Tree.hs and test
+it with TreeTests.hs.  
+
+Problem 4:
+----------
+
+Implement two functions: a function 'count' given by
+
+  count :: Eq a => a -> [a] -> Integer
+
+that numbers the occurrences of an element in a list, and a (re)implementation of 'elem':
+
+  elem2 :: Eq a => a -> [a] -> Bool
+
+Use a different Prelude fold function in each: one a left fold, and one a right fold.  
+(If you swap them, the test will hang.)  The rule of thumb is that the left, 
+or tail-recursive, fold is more effcient if a list needs to be fully examined.  
+If it doesn't, the right fold is better, again for efficiency.
+
+Technically, the non-strict fold could do the job in both cases here, 
+but for full points you should use a left fold.
+
+Put your solutions in Folds.hs and test them with FoldsTests.hs.

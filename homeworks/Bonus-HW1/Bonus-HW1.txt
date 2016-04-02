@@ -1,0 +1,23 @@
+Bonus HW 1:
+-----------
+
+This bonus homework is worth 10 points.
+
+Problem 0:
+----------
+
+Go to http://www.erlang.org/ and install Erlang on your computer.
+
+Read the first 30 pages of the Erlang tutorial
+
+http://www.erlang.org/download/getting_started-5.4.pdf
+
+Problem 1:
+----------
+
+Type up the modules tut14 (page 24) and tut16 (page 29) and 
+run them in the Erlang shell.
+
+Take two screen shots in png format to show that you ran both programs
+on your computer.  Upload the files tut14_screenshot.png and 
+tut16_screenshot.png to webcourses.     

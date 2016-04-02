@@ -1,0 +1,68 @@
+head	1.2;
+access;
+symbols;
+locks
+	leavens:1.2; strict;
+comment	@# @;
+
+
+1.2
+date	2013.10.24.13.55.49;	author leavens;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	2013.10.24.13.49.00;	author leavens;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.2
+log
+@better
+@
+text
+@-- $Id: ParQSortRun4.hs,v 1.1 2013/10/24 13:49:00 leavens Exp leavens $
+module Main where
+-- see Makefile for compilation instructions
+import Control.Monad.Par.Scheds.Trace
+import DivideAndConqueor
+import Control.DeepSeq
+import QuickSortRunHelpers
+import Data.List (sort)
+
+-- main creates the input, runs the sort and prints the result,
+-- all in the IO monad.
+main :: IO ()
+main = do is <- input
+          print (isOrdered (pqsort is))
+
+-- The strategy for parallelism used here is divideAndConqueor 2
+pqsort :: (Ord a, NFData a) => [a] -> [a]
+pqsort xs = 
+    divideAndConqueor 4 psplit sort (++) xs
+
+psplit :: (Ord a) => [a] -> ([a],[a])
+psplit [] = ([],[])
+psplit (x:xs) = let small = [e | e <- xs, e <= x]
+                    large = [e | e <- xs, e > x]
+              in (small, x:large)
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d1 1
+a1 1
+-- $Id: PQSortRun3.hs,v 1.2 2013/10/23 13:37:23 leavens Exp leavens $
+d19 1
+a19 1
+    divideAndConqueor 6 psplit sort (++) xs
+@

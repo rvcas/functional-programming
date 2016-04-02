@@ -1,0 +1,62 @@
+head	1.2;
+access;
+symbols;
+locks
+	leavens:1.2; strict;
+comment	@# @;
+
+
+1.2
+date	2013.10.23.01.49.10;	author leavens;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	2013.10.18.13.00.39;	author leavens;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.2
+log
+@better
+@
+text
+@-- $Id: QuickSort.hs,v 1.1 2013/10/18 13:00:39 leavens Exp leavens $
+module QuickSort where
+
+qsort :: (Ord a) => [a] -> [a]
+qsort [] = []
+qsort (x:xs) = let (small,large) = split x xs
+               in (qsort small) ++ (x:(qsort large))
+
+split :: (Ord a) => a -> [a] -> ([a],[a])
+split x xs = ([e | e <- xs, e <= x], [e | e <-xs, e > x])
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d1 1
+a1 1
+-- $Id$
+d7 1
+a7 1
+               in merge (qsort small) (x:(qsort large))
+a10 8
+
+merge :: (Ord a) => [a] -> [a] -> [a]
+merge [] ys = ys
+merge xs [] = xs
+merge (x:xs) (y:ys) = if x <= y 
+                      then x:(merge xs (y:ys))
+                      else y:(merge (x:xs) ys)
+
+@

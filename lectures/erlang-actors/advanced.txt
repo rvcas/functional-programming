@@ -1,0 +1,52 @@
+COP 4020 Lecture -*- Outline -*-
+
+* Advanced Topics (5.8) (skip)
+
+** nondeterministic concurrent model (5.8.1)
+
+   Used in Japanese 5th generation project
+
+------------------------------------------
+ NONDETERMINISTIC CONCURRENT MODEL (5.8.1)
+
+Used in concurrent logic programming
+AKA: process model of logic programming
+
+= declarative concurrent model + WaitTwo
+     
+  {WaitTwo X Y} == 1 if X is defined
+  {WaitTwo X Y} == 2 if Y is defined
+  blocks otherwise
+------------------------------------------
+
+        Q: Can this be programmed in the declarative concurrent model?
+        No
+
+        Q: If we add exceptions? IsDet? Ports?
+        Yes, Yes, Yes
+
+          This indicates the power of these features 
+          and their lack of referential transparency.
+
+          See figures 5.25 and 5.26
+
+        Q: What does this allow us to program?
+        merge of 2 streams
+
+------------------------------------------
+           PROBLEMS
+
+Practical programming problems:
+
+  Inefficient
+   - stream mergers require a thread
+
+  Not very expressive
+   - can't reference server directly
+     can only reference stream
+------------------------------------------
+
+     Efficiency problems haven't been solved in 20 years of research
+     Fixes are equivalent to adding ports
+
+     Really needs some sort of explicit state

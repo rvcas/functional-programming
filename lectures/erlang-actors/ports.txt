@@ -1,0 +1,416 @@
+COP 4020 Lecture -*- Outline -*-
+
+* Port Objects or Agents or Active Objects (5.2)
+
+** definition
+
+   Q: For review, what's a stream object?
+      - like a Mealy machine or I/O automata with a state
+      - its function makes transitions for each input on an input stream,
+        based on its current state
+
+------------------------------------------
+PORT OBJECTS / AGENTS / ACTIVE OBJECTS (5.2)
+
+def: a port object is a
+ "combination of one or more ports
+  and a stream object"
+
+Extends stream objects:
+
+  - allows multiple sends
+
+  - can be embedded in data structures
+
+------------------------------------------
+
+        ... multiple sends = many to one communication
+
+------------------------------------------
+         EXAMPLES OF PORT OBJECTS
+
+declare
+fun {SumPortMaker}
+   Strm % declaring the input stream
+
+   fun {Loop Nums N}
+      case Nums of
+         X|Xs then {Loop Xs N+X}
+      end
+   end
+in
+   thread _={Loop Strm 0} end
+   {NewPort Strm}
+end
+
+
+% clients can do...
+PSum = {SumPortMaker}
+{Send PSum 3}
+{Send PSum 7}
+------------------------------------------
+        See SumPortMaker.oz SumPortMakerTest.oz
+
+        Q: How could we get information out of such a port object?
+           can't with this one, but can
+                 using messages that contain dataflow variables...
+
+** stateful port objects
+
+   recall: a message is just data, typically a record
+
+------------------------------------------
+       A MORE USEFUL PORT OBJECT
+         WITH MESSAGES
+
+declare
+fun {SumAgentMaker}
+   Strm  % declaring the input stream
+
+   fun {Loop MsgStrm N}
+      case MsgStrm of
+         add(X)|Msgs then {Loop Msgs N+X}
+      [] get(Z)|Msgs then Z=N
+                          {Loop Msgs N}
+      end
+   end
+in
+   thread _={Loop Strm 0} end
+   {NewPort Strm}
+end
+
+% clients can do...
+declare
+SumPObj = {SumAgentMaker}
+{Send SumPObj add(3)}
+{Send SumPObj add(7)}
+local Z in
+   {Send SumPObj get(Z)}
+   {Test Z '==' 10}
+end
+{Send SumPObj add(27)}
+{Test {Send SumPObj get($)} '==' 37}
+
+------------------------------------------
+        See SumAgentMaker.oz SumAgentMakerTest.oz
+
+        Q: What's another example that would be similar?
+           (we did a "MathAgent" in class, see MathAgentMaker.oz)
+
+*** abstraction: NewPortObject function
+
+        Q: How would you make an abstraction of this kind of thing?
+           What changes?
+                the way any bindings
+                    and the new state is computed from the old state
+                                                       and the message
+           What's common?
+               the declaration of the input stream
+               the thread
+               the looping
+               the return of the port to send to the stream
+
+------------------------------------------
+             ABSTRACTION FOR
+          MAKING PORTS WITH STATE
+                  (5.2.1)
+
+declare
+fun {NewPortObject Init Fun}
+   Sin  % declaring the input stream
+in
+   thread _={FoldL Sin Fun Init} end
+   {NewPort Sin}
+end
+------------------------------------------
+        See NewPortObject.oz
+
+        Note that the Init state is the first argument
+        Q: What's the first argument passed to Fun? The second?
+             a state
+             the stream element (i.e., a message)
+
+        Q: How would you write SumAgentMaker using NewPortObject?
+------------------------------------------
+         USING NEWPORTOBJECT
+
+\insert 'NewPortObject.oz'
+
+declare
+fun {SumAgentMaker}
+   {NewPortObject 0
+    fun {$ N Msg}
+      case Msg of
+         add(X) then N+X
+      [] get(Z) then Z=N
+                     N
+      end
+   end}
+end
+
+------------------------------------------
+        See NewPortObjectTest.oz
+
+        Q: After executing
+             P = {NewPortObject I0 F}
+             {Send P a}
+             {Send P b}
+             {Send P c}
+           what is the state inside the port object?
+        It is  {F {F {F I0 a} b} c}
+
+        Q: What does NewPortObject return?
+        the port that can be used to send input to the object
+
+        Q: What happens to the final state?
+           There is none!  Streams never end, so the base case isn't
+           reached, so there's no value ultimately.
+
+*** example
+
+     This idea of state machines is the key one for this chapter!
+
+------------------------------------------
+        FINITE STATE PORT OBJECTS
+
+Key idea:
+
+    Encode a finite state machine
+    as a port object using NewPortObject
+
+Example:
+
+   NewBankAccount: <fun {$}: <Port>>
+
+   Messages (records)
+
+      inquire(WhatAmt)
+      deposit(Dollars)
+      withdraw(Dollars)
+      close
+
+declare
+Acct = {NewBankAccount}
+
+{Test {Send Acct inquire($)} '==' 0}
+{Send Acct deposit(10)}
+{Test {Send Acct inquire($)} '==' 10}
+{Send Acct deposit(10)}
+{Test {Send Acct inquire($)} '==' 20}
+{Send Acct withdraw(5)}
+{Test {Send Acct inquire($)} '==' 15}
+{Send Acct withdraw(15)}
+{Test {Send Acct inquire($)} '==' 0}
+{Send Acct close}
+------------------------------------------
+
+------------------------------------------
+     IMPLEMENTING THE BANK ACCOUNT
+
+Key idea: identify states and transitions
+
+State Machine Diagram:
+                                          deposit(M)
+                                          /-------\
+           |                              |       |
+           |                              \       /
+           v          deposit(N)           \     v
+     |------------| -----------------   |-----------|
+     |   Opened   |/                 \->|  Opened   |
+     | Balance==0 |                     | Balance>0 |
+     |------------|<\                  /|-----------|
+           |         \----------------/    ^     |
+           | close     withdraw(N)         |     |
+           v             & N==Balance      \-----/
+     |------------|                      withdraw(M)
+     |  Closed    |                     & M<Balance
+     |------------|
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+------------------------------------------
+        See NewBankAccountTest.oz and NewBankAccount.oz
+
+        If time, work more examples:
+
+           e.g., Timer that takes startTimer(T Pid) messages
+                 and when it gets one does
+                     thread {Delay T} {Send Pid stoptimer} end
+
+                Bank account that doesn't allow more than 100 to be
+                withdrawn during each 60 millisecond period.
+
+*** another example
+------------------------------------------
+    ANOTHER STATEFUL PORT OBJECT
+    SIMULATING DATAFLOW VARIABLES
+
+Make a port object that responds 
+to the messages
+
+  unifyWith(<Value>)
+  getValue(<Variable>)
+
+and that acts like a dataflow variable.
+
+------------------------------------------
+Design:
+                     unifyWith(V)/X=V
+                    /----------\
+                   /            v
+     undetermined(X)           determined(V)
+                                ^        /
+                                 \------/
+                                  getValue(Z)/Z=V
+
+  See MakeDFV.oz and MakeDFVTest.oz
+
+** stateless port objects 
+
+*** Stateless port object abstraction
+------------------------------------------
+   MAKING STATELESS PORT OBJECTS (5.2.1)
+
+declare
+fun {NewPortObject2 Proc}
+   Sin
+in
+   thread
+      for Msg in Sin do {Proc Msg} end
+   end
+   {NewPort Sin}
+end
+------------------------------------------
+        See NewPortObject2.oz
+
+*** stateless example (5.2.2)
+
+    See BallToss.oz
+
+------------------------------------------
+           TO DO
+
+Write
+
+ MinServer: <fun {$}: <Port T>>
+
+such that the following tests work.
+
+declare
+MinP = {MinServer}
+
+{Test {Send MinP min(3 7 $)} '==' 3}
+{Test {Send MinP min(7 3 $)} '==' 3}
+{Test {Send MinP min(6 4 $)} '==' 4}
+{Test {Send MinP min(0 94 $)} '==' 0}
+
+------------------------------------------
+         The above is in MinServerTest.oz
+
+    ...
+\insert 'NewPortObject2.oz'
+declare
+fun {MinServer}
+   {NewPortObject2
+    proc {$ min(X Y Ans)}
+       Ans={Min X Y}
+    end}
+end
+
+
+*** Reasoning (5.2.3)
+
+**** For stateless port objects (NewPortObject2)
+
+------------------------------------------
+  REASONING ABOUT STATELESS PORT OBJECTS
+
+
+
+
+
+
+
+------------------------------------------
+    ... - Specify what bindings and message sends should happen
+            for each kind of message
+
+        - Verify that the object does that
+           for each kind of message
+
+**** For stateful port objects (NewPortObject)
+------------------------------------------
+  REASONING ABOUT STATEFUL PORT OBJECTS
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+------------------------------------------
+ ...
+    Specify the state transition system
+       for each kind of message and state
+       say what bindings, message sends, and new state should result
+
+    Verify that the object does that by:
+      describing an invariant on the state
+      1. show that each kind of message preserves the invariant
+      2. check each case clause,
+         a. assuming the invariant holds of the state,
+         b. check it does what it should, and
+         c. verify the invariant holds at the end
+
+   (Note: no callback problems, because message sends have no effect
+    on this object until the case clause is over.
+    This is a simplification vs. OO programs, for example.)
+
+**** For the entire system of agents
+------------------------------------------
+    REASONING ABOUT SYSTEMS OF AGENTS
+
+
+
+
+
+
+
+
+
+------------------------------------------
+  ...
+    - Assume each agent satisfies its specification
+
+    - Show the program with the ports is correct
+       a. look at possible sequences
+       b. define causality
+       c. reason about state transitions

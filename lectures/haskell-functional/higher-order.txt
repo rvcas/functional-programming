@@ -1,0 +1,287 @@
+COP 4020 Lecture -*- Outline -*-
+
+------------------------------------------
+
+* Higher-order programming
+
+Much of this is based on van Roy and Haridi's book 
+"Concepts, Techniques and Models of Computer Programming", chapter 3
+
+------------------------------------------
+
+* Order
+
+def: The *order* of a function f is 
+     1 + (maximum order of f's arguments),
+     where the order of a non-function argument is 0.
+
+def: A function is *higher-order* if its order is greater than 1.
+
+Examples:
+
+> map' :: (a -> b) -> [a] -> [b]
+> map' _ [] = []
+> map' f (x:xs) = f x : map' f xs
+
+> foldr' :: (a -> b -> b) -> b -> [a] -> b
+> foldr' op z [] = z
+> foldr' op z (x:xs) = x `op` (foldr' op z xs) 
+
+------------------------------------------
+
+* Basic Operations (3.6.1)
+
+What are the 4 basic operations of higher-order programming?
+
+1. Procedural abstraction: converting expressions to functions
+    (Liskov & Guttag's abstraction by parameterization)
+
+2. Genericity: passing functions as arguments
+    (abstracting out expressions, not just data)
+
+3. Instantiation: returning function values as results
+    (creation of new functions)
+
+4. Embedding: putting functions in data structures
+
+------------------------------------------
+
+* Procedural abstraction
+
+Q: How can you make an expression e into a function?
+
+   (\() -> e)
+
+   This freezes execution (makes a closure, or thunk)
+
+Q: Suppose we want two variants of a function that are similar,
+   but differ a bit?
+
+   Use arguments
+
+------------------------------------------
+
+* Genericity
+
+We explain this by abstracting tail recursion.
+
+------------------------------------------
+
+* Abstraction of tail recursion
+
+Consider the two functions:
+
+sumFromTo i j = sumFromToIter (j,0) 
+  where sumFromToIter (j,r) =
+          if i > j then r else sumFromToIter (j-1,r+j)
+
+sqrt x = sqrtIter 1.0
+  where sqrtIter guess =
+          if goodEnough guess then guess
+          else sqrtIter (improve guess)
+          where goodEnough guess = abs(guess*guess - x) < 0.0001
+                improve guess = (guess+(x/guess))/2.0
+
+Q: What do their ...Iter functions have in common?
+
+Q: How do they differ?
+
+Q: Can we make the differences arguments?
+
+------------------------------------------
+
+* Abstraction of tail recursion
+
+tailrec :: (a -> Bool) -> (a -> b) -> (a -> a) -> a -> b
+tailrec isDone extract transform s = loop s
+  where loop s = 
+          if (isDone s) then (extract s)
+          else loop (transform s)
+
+------------------------------------------
+
+* For you to do
+
+How would you write sumFromToIter and sqrtIter using tailrec? 
+
+See AbstractionTailRecursion.hs
+
+------------------------------------------
+
+* Instantiation (currying)
+
+Aka: factories, generators, curried functions
+
+qsort :: Ord a => (a -> a -> Bool) -> [a] -> [a]
+
+qsort _ [] = []
+qsort comp (x:xs) = (qsort comp less) ++ [x] ++ (qsort comp greater)
+  where less    = [y | y <- xs, y `comp` x]
+        greater = [y | y <- xs, not (y `comp` x)]
+
+sortGT = qsort (>)
+sortLT = qsort (<)
+
+see InstantiationQuickSort.hs
+
+------------------------------------------
+
+* For you to do
+
+Problem: Write the function compose such that:
+
+  ((compose head tail) [1,2,3])
+        == head (tail [1,2,3])
+	== head [2,3]
+	== 2
+
+   ((compose not null) [])
+	== not (null [])
+	== False
+
+------------------------------------------
+
+* Hints
+
+First generalize the examples:
+
+In general, we have 
+
+  ((compose f g) x) == f (g x)
+
+So (compose f g) is a function of one argument 
+
+  (\x -> f (g x))
+
+But compose itself is a function, of two arguments, f and g,
+and when called it returns this other procedure, so
+
+   compose f g = (\x -> f (g x))
+
+------------------------------------------
+        
+* Summary of steps for making a higher-order function
+  
+ 1. Starting from examples, name the roles
+ 2. Generalize the result expression,
+    using role names, write it down
+ 3. Wrap lambda (\ -> ) declarations around it,
+    corresponding to the arguments
+
+------------------------------------------
+
+* For you to do
+
+Problem: Write a function twice
+
+  twice :: (a -> a) -> a -> a
+
+such that
+
+   (twice not) True
+	== not (not True)
+	== True
+
+   (twice (+1)) 3
+	== (+1) ((+1) 3)
+	== 5
+
+------------------------------------------
+
+* Hints 
+
+What's the general formula?
+
+        (twice f) x == f (f x)
+
+------------------------------------------
+
+* For you to do
+
+Problem: Write a function 
+
+  composeList :: [(a -> a)] -> (a -> a)
+
+that takes a list of functions, and returns
+a function that is their composition such that:
+
+(composeList [] [1,2,3]) == [1,2,3]
+(composeList [(*5),(+2)] 4) == 30)
+(composeList [tail,tail,tail] [1,2,3,4,5]) == [4, 5])
+(composeList [(3*),(4+),(10*)] 1) == (3*(4+10)))
+(composeList [(\x -> 3:x),(\y -> 4:y)] []) == 3:(4:[]))
+(composeList [(\x -> 'a':x),(\y -> ' ':y)] "star") == "a star")
+(composeList (map (+) [1 .. 1000]) 0) == (sum [1 .. 1000]))
+
+see ComposeList.hs and ComposeListTests.hs
+
+------------------------------------------
+
+* Embedding
+
+Putting closures in data is useful for:
+
+  - explicit lazy evaluation
+
+  - objects = records of operations
+
+  - classes, functions that return objects
+
+  - manipulating actions as data
+      (e.g., in testing)
+
+This is also the basic OO paradigm.
+
+------------------------------------------
+
+* Example: infinite sequences
+
+Problem: Define Seq a and write the functions 
+
+repeating :: (Num a) => a -> (Seq a)
+generate  :: (Num a) => (Integer -> a) -> (Seq a)
+nth       :: (Num a) => Integer -> (Seq a) -> a
+add       :: (Num a) => (Seq a) -> (Seq a) -> (Seq a)
+
+such that
+
+ones   = (repeating 1)
+halves = generate (\n -> 1.0/(2.0^(fromInteger n)))
+
+(nth halves 0)  ~=~ 1.0
+(nth halves 1)  ~=~ 0.5
+(nth halves 2)  ~=~ 0.25
+(nth halves 3)  ~=~ 0.125
+(nth halves 30) ~=~ 9.313225746154785e-10
+
+(nth (ones `add` halves) 2) ~=~ 1.25  
+
+------------------------------------------
+
+* Example: infinite sequences          
+
+Q: How can we represent something infinite in a computer?
+
+As a rule, i.e., as a function.
+
+Here we will use rules of type 
+
+  Integer -> a,    where (Num a)
+
+to represent the type (Seq a)
+
+The idea is that, e.g.,
+
+   (\n -> n*n)
+
+represents the sequence 0, 1, 4, 9, 16, 25, ...
+
+newtype Seq a = Seq (Integer -> a)
+
+-- see https://wiki.haskell.org/Newtype 
+-- for more info on the difference between
+-- data and newtype
+
+See Seq.hs and SeqTests.hs
+
+------------------------------------------

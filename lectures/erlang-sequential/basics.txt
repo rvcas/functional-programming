@@ -1,0 +1,210 @@
+COP 4020 Lecture -*- Outline -*-
+
+* Basics of Erlang
+
+** overview
+
+------------------------------------------
+         ERLANG OVERVIEW
+
+Erlang designed for:
+
+ - reliable distributed systems (telephony)
+
+Language Design:
+
+ - mix of functional and logic programming influences
+ - actor model for concurrency and distribution
+
+------------------------------------------
+        Q: Why this kind of design?
+           - immutable data allows concurrency without locking
+           - distribution allows for scalable systems, 
+             avoids single point failures
+
+** data types
+
+*** primitive types
+------------------------------------------
+      PRIMITIVE TYPES IN ERLANG
+
+ any()
+  number
+    integer()    3, 7
+    float()      3.14159, 2.7e-3
+  atom()         stop, go
+  port()
+  pid()
+  reference()
+
+------------------------------------------
+**** atoms
+------------------------------------------
+              ATOMS
+
+symbols with a fast equality test
+
+start with a lower case letter
+
+      an_atom
+      go
+      yes
+
+or are enclosed in single quotes:
+
+      'Truth'
+      'Justice'
+      'american way'
+
+Note:
+  Variables identifiers
+  must start with an Upper Case letter 
+  or an underscore (_)
+------------------------------------------
+        opposite, in a sense, to Haskell
+
+*** compound types
+------------------------------------------
+       COMPOUND TYPES IN ERLANG
+
+ any()
+  binary()       <<1:1,0:1>>
+  fun()          fun (X) -> X end, fun foo/1
+  tuple()        {point,3,4}
+  T1 | T2        "union types"
+
+Synonyms:
+
+  char() is a small integer()
+  [T]  = [] | [T|[T]]
+  string() = [char()]    "can be written so"
+------------------------------------------
+
+        binaries are bit strings
+        funs are closures, with syntax 
+
+            fun (<Patterns>) -> <Expression> end
+              see closuredemo.erl
+
+            Also: in a module, 
+                functions have names that start with a lowercase letter;
+                to use such a named function as an expression use syntax:
+                        fun foo/1
+                which distinguishes them from symbols.
+
+        note strange (vs. Haskell) syntax on tuples
+        unions just happen, no special constructors
+
+        Note that closures close over values, 
+            can't have free variables that are undetermined (unbound).
+
+        Patterns can be used in function headings, as in Haskell.
+
+** means of combination
+*** pattern matching
+------------------------------------------
+     PATTERN MATCHING
+
+The = operator, unifies both sides:
+
+   {point,X,Y} = {point,3,4}
+   makes X be 3 and Y be 4.
+
+Pattern matching in function clauses :
+
+    xcoord({point,X,_}) -> X.
+    ycoord({point,_,Y}) -> Y.
+
+    P = {point,3,4}
+    xcoord(P)   returns 3
+
+Case expressions:
+
+     xcoord(P) ->
+        case P of
+          {point,X,_} -> X
+        end.
+        
+------------------------------------------
+        semantics is similar to Haskell
+
+------------------------------------------
+ DIFFERENCES FROM HASKELL PATTERN MATCHES
+
+Multiple uses of the same variable:
+
+     case P of
+        {point,X,X} -> same;
+        _ -> different
+     end
+
+can be thought of as sugar for:
+
+     case P of
+        {point,X,Z} when X =:= Z -> same;
+        _ -> different
+     end
+
+
+Variables that are already determined
+stand for their value:
+
+     X = 2,
+     case P of
+        {point,X,_} -> "x coordinate was 2";
+        {point,Q,_} -> "x coordinate was " ++ integer_to_list(Q)
+     end
+
+can be thought of as sugar for:
+
+     X = 2,
+     case P of
+        {point,Z,_} when Z =:= X -> "x coordinate was 2";
+        {point,Q,_} -> "x coordinate was " ++ integer_to_list(Q)
+     end
+
+------------------------------------------
+
+           but same variable can appear twice (short for equality constraint)
+
+           So defined variable is *not* redeclared in a case
+
+*** functions
+    parameters are passed by value (eagerly evaluated).
+       see passing.erl
+
+    overloading based on number of arguments
+
+**** full recursion
+------------------------------------------
+         FULLY RECURSIVE CODE
+
+mylength([]) ->
+    0;
+mylength([_|T]) ->
+    1+ mylength(T).
+
+------------------------------------------
+        Note the semicolons and period
+
+**** tail recursion
+
+------------------------------------------
+             TAIL RECURSION
+
+len(Ls) ->
+    len(Ls,0).
+len([],N) -> N;
+len([_|T],N) -> len(T,N+1).
+
+------------------------------------------
+    note that the helper has the same name but a different number of arguments
+
+
+*** programs
+    modules are sets of function definitions
+       controled exports
+    lexical scope 
+       - uses closures
+       - but is restricted to functions (no names other than functions
+           defined outside of functions).

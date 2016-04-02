@@ -1,0 +1,40 @@
+Eshell V6.3  (abort with ^G)
+1> c("c:/cygwin64/home/leavens/classes/cop4020/lectures/erlang-actors/gauge_server", [{outdir, "c:/cygwin64/home/leavens/classes/cop4020/lectures/erlang-actors/"}]).
+{ok,gauge_server}
+2> c("c:/cygwin64/home/leavens/classes/cop4020/lectures/erlang-actors/gauge_server_tests", [{outdir, "c:/cygwin64/home/leavens/classes/cop4020/lectures/erlang-actors/"}]).
+{ok,gauge_server_tests}
+3> GS = gauge_server_tests
+.
+gauge_server_tests
+4> GS
+.
+gauge_server_tests
+5> GS:main().
+
+Testing gauge_server_tests $Revision: 1.1 $...
+0
+      == 0
+counted
+      == counted
+1
+      == 1
+counted
+      == counted
+2
+      == 2
+ok
+      == ok
+17
+      == 17
+counted
+      == counted
+18
+      == 18
+Finished with 0 failures!
+0
+6> c("c:/cygwin64/home/leavens/classes/cop4020/lectures/erlang-actors/shoppinglistinclass", [{outdir, "c:/cygwin64/home/leavens/classes/cop4020/lectures/erlang-actors/"}]).
+c:/cygwin64/home/leavens/classes/cop4020/lectures/erlang-actors/shoppinglistinclass.erl:8: Warning: function add/1 is unused
+c:/cygwin64/home/leavens/classes/cop4020/lectures/erlang-actors/shoppinglistinclass.erl:10: Warning: function getList/0 is unused
+c:/cygwin64/home/leavens/classes/cop4020/lectures/erlang-actors/shoppinglistinclass.erl:13: Warning: function clear/0 is unused
+{ok,shoppinglistinclass}
+7> 

@@ -1,0 +1,1 @@
+myFilter predicate list = [element | element <- list, predicate element]

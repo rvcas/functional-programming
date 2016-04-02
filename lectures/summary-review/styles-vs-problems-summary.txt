@@ -1,0 +1,71 @@
+CS 641 Lecture -*- Outline -*-
+
+* style (or model) vs. problems
+
+** styles vs. kinds of problems that work well
+
+------------------------------------------
+  WHAT KINDS OF PROBLEMS WORK WELL IN...
+
+Declarative (+ higher-order) style?
+	infinite data structures
+	polymorphism (generic programming)
+	tool building
+        semantics
+        web apps
+        functional transformations
+
+Declarative Concurrent (+ demand-driven) style?
+        dataflow problems (order-determined automatically)
+        pipelines (producer-consumer, filtering)
+        stream computations
+        stream objects (e.g., circuit simulations)
+
+Message Passing style?
+        agent computation problems (even with state)
+        cooperating finite state machines
+        robust, dependable systems (as in Erlang)
+
+Relational (logic programming) style?
+        recording specifications (e.g., for test oracles)
+        rapid prototyping (explorations)
+        search in small domains
+        database interaction, especially queries
+
+Explicit State (ADT, OO) style?
+	conceptual modeling
+	simulation
+        changing domains (planning for change)
+        prototyping
+
+------------------------------------------
+
+** What kinds of things are not easily done in a given style?
+------------------------------------------
+    WHAT IS NOT EASILY DONE IN ...
+
+Declarative style?
+     storage and sharing of time-varying data
+     interaction with concurrent agents in the real world
+
+Declarative Concurrent style?
+     [storage and sharing of time-varying data]
+     merging separate streams
+     dealing with multiple clients without making them wait
+
+Message Passing style?
+     sharing of time-varying data in a modular way
+     reasoning about uses of a component
+
+Relational style?
+    [storage and sharing of time-varying data]
+    interaction with concurrent agents in the real world
+    control of the search
+
+Explicit State (ADT, OO) style?
+    simple (equational) reasoning (referential transparency)
+
+------------------------------------------
+
+        in models that build on others,
+           some problems are "inherited" from underlying models

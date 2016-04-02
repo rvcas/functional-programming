@@ -1,0 +1,32 @@
+discussion section -*- Outline -*-
+
+* notes for helping learn recursion
+
+** What lists are
+	Q: How would you define lists?
+	show the data definition from this:
+		data [t] = [] | t : []
+
+** Data-driven recursion and working from examples
+	emphasize how working examples helps you find what to do
+		for the recursive case
+
+	Show how to do add1each
+
+	examples:
+		add1each [] = []
+		add1each [1,3,5] = [2,4,6]
+		add1each [3,5]   =   [4,6]
+
+	how do we get [2,4,6] from 1 and [4,6]?
+	now generalize
+
+> add1each [] = []
+> add1each (x:xs) = (1+x):(add1each xs)
+
+	Try the following problems:
+		delete_first
+		subst
+		append
+		reverse
+		lookup in association lists

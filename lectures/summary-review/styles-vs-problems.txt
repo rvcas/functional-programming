@@ -1,0 +1,94 @@
+CS 641 Lecture -*- Outline -*-
+
+* style (or model) vs. problems
+	(what's the match?)
+
+** styles vs. kinds of problems that work well
+
+------------------------------------------
+  WHAT KINDS OF PROBLEMS WORK WELL IN...
+
+Declarative (+ higher-order) programming?
+
+
+
+
+Declarative parallel programming?
+
+
+
+
+
+Actor programming?
+
+
+
+
+
+
+------------------------------------------
+
+        ... declarative style:
+	infinite data structures
+	polymorphism (generic programming)
+	tool building
+        semantics
+        web apps
+        functional transformations
+
+        ... declarative parallel style:
+
+        pipelines (producer-consumer, filtering)
+        stream computations
+
+        ... message passing style
+        client/server problems
+        agent computation problems (even with state)
+        cooperating finite state machines
+        robust, dependable systems
+
+        Q: How do these compare to OO programming (say in Java)?
+
+** What kinds of things are not easily done in a given style?
+------------------------------------------
+    WHAT IS NOT EASILY DONE IN ...
+
+Declarative programming?
+
+
+
+
+Declarative Parallel programming?
+
+
+
+
+Actor programming?
+
+
+
+
+
+------------------------------------------
+
+        ... declarative
+                storage and sharing of time-varying data
+                interaction with concurrent agents in the real world
+
+        ... declarative parallel
+                [storage and sharing of time-varying data]
+                merging separate streams
+                dealing with multiple clients without making them wait
+
+        ... message passing style
+                sharing of time-varying data in a modular way
+                reasoning about uses of a component
+
+        ... relational 
+                [storage and sharing of time-varying data]
+                interaction with concurrent agents in the real world
+                control of the search
+                
+
+        in models that build on others,
+           some problems are "inherited" from underlying models

@@ -1,0 +1,553 @@
+COP 4020 Lecture -*- Outline -*-
+
+* multicore programming in Erlang
+
+** parallelism motivation
+------------------------------------------
+    WHY IS PARALLELISM USEFUL?
+
+
+
+
+
+
+
+
+
+
+------------------------------------------
+     ...
+      - Get answers faster (e.g., weather predictions)
+        e.g., NOAA weather supercomputer needs to do 1.3 Trillion ops/sec
+                to get a 6 day in advance forecast
+      - needed for programs that interact with their environment
+         GUIs, agents, OS Interaction
+           Why? 
+             to overlap computations with user time
+
+      - Lets your program be organized into parts that are independent
+         Client/server, producer/consumer, pipelines
+           How does that help? 
+             each part concentrates on a smaller job        
+
+** streams
+------------------------------------------
+              STREAMS
+
+def: a *stream* is
+
+
+
+
+
+Grammar:
+   <IStream T> ::= <T>, <IStream T>
+
+------------------------------------------
+     ... a potentially unbounded source of items (messages)
+
+     Q: What kind of recursion does this grammar suggest?
+        infinite, like a server
+
+*** Producer/Consumer 
+
+------------------------------------------
+  PRODUCER/CONSUMER PIPELINE WITH STREAMS
+
+
+   |-----------| 3|5|7|9|... |-----------|
+   |  Consumer |<------------|  Producer |
+   |-----------|             |-----------|
+
+Example:
+
+   |-----------|             |-----------|
+   |  Player   |<------------|MP3 Encoder|
+   |-----------|             |-----------|
+
+Idea:
+
+
+
+
+------------------------------------------
+    ... The Producer creates stream elements
+        The Consumer waits for the next item and then processes it.
+
+    OR
+    ... The Producer waits for a request
+        The Consumer asks for the next item when it is free
+
+    Q: What kinds of things would the consumer do?
+        searching, filtering, mapping, ...
+
+*** flow control
+    Q: What happens if the producer runs faster than the consumer?
+       items pile up at the consumer
+    Q: What happens if the consumer runs faster than the producer?
+       the consumer is idle a lot
+
+------------------------------------------
+           BUFFERING
+
+   |-----------| 3|5|7|9|... |-----------|
+   |  Consumer |<------------|  Producer |
+   |-----------|             |-----------|
+
+Extremes of flow:
+
+   Eager producer:
+   Lazy producer:
+
+
+   |-----------|             |-----------|
+   |  Consumer |<--[buffer]--|  Producer |
+   |-----------|             |-----------|
+
+
+------------------------------------------
+        ... messages accumulate at consumer
+        ... consumer may wait, like rpc, no parallelism
+
+        Intermediate:
+            control how much producer and consumer can get out of sync
+            smooths out anomolies in irregular processes
+
+** extended example motivation
+------------------------------------------
+      HAILSTONE (3x+1) EXAMPLE
+
+-spec h(pos_integer()) -> pos_integer().
+h(N) -> 
+    if N rem 2 =:= 1 -> (3*N+1) div 2;
+       true -> N div 2
+    end.
+
+% returns the trajectory of the number N:
+% [N, h(N), h(h(N)), h(h(h(N))), ..., 1]
+-spec trajectoryTo1(pos_integer()) -> [pos_integer()].
+trajectoryTo1(N) -> 
+    if N > 1 -> [N|trajectoryTo1(h(N))];
+       true -> [N]
+    end.
+
+------------------------------------------
+      See hailstone.erl
+
+      try hailstone:trajectoryTo1(26).
+          hailstone:trajectoryTo1(27).
+
+      Go over the computation of peaks and try it out.
+      Problem, it's slow...
+
+** buffered stream actor templates
+*** architecture
+      for stream messages
+      we use a particular architecture 
+
+------------------------------------------
+       OVERALL PROTOCOL FOR STREAMS
+
+production is lazy:
+        {From, get}
+        message triggers production
+
+        {Name, {put, Value}}
+        message is the response
+
+
+   |-----------|    Value    |-----------|
+   |  Consumer |<------------|  Producer |
+   |-----------|             |-----------|
+
+     timeline:
+
+          |   {Consumer, get}     |
+          |---------------------->|
+          |                       |
+          |{Producer, {put,Value}}|
+          |<----------------------|
+          |                       |
+
+------------------------------------------
+
+------------------------------------------
+             BUFFERING
+
+Approach:
+        Erlang mailbox is the buffer
+
+        Pick a Size of buffer, N
+           say 100
+
+      invariant:
+        There are always N requests (get)
+        sent to the producer
+        and not yet received (put)
+------------------------------------------
+
+
+*** producer
+------------------------------------------
+     GENERALIZED PRODUCER MODULE
+     
+-module(producer).
+-export([start_link/3]).
+
+-spec start_link(Node::atom(), Name::pid(), 
+		 Mod::atom()) -> pid().
+start_link(Node, Name, Mod) ->
+    register(Name,
+	     spawn_link(Node,
+                 fun() -> loop(Name,
+                               Mod,
+                               Mod:init())
+                 end)).
+
+loop(Name, Mod, State) ->
+
+
+
+
+
+
+
+------------------------------------------
+        based on server1, as you can see
+
+        Q: What is the Node argument for?
+           to allow distribution of the pipeline
+
+    ...
+    receive
+	{From, get} ->
+	    {Value, NewState} = Mod:produce(State),
+	    From ! {Name, {put, Value}},
+	    loop(Name, Mod, NewState)
+    end.
+
+           To do it all on the same machine, use node()...
+
+*** pipes (in the middle)
+      it is easiest to separate out mapping and filtering
+      otherwise the code is too complex
+**** generalized mapper
+------------------------------------------
+         GENERALIZED MAPPER
+
+-module(mapper).
+-export([start_link/6]).
+
+-spec start_link(atom(), atom(), atom(), atom(), atom(), pos_integer())
+		-> no_return().
+start_link(Node, MyName, Mod, MyOutput, MyInput, Size) ->
+    register(MyName,
+	     spawn_link(Node, 
+			fun() -> init(MyName, Mod, MyOutput, 
+				      MyInput, Size)
+			      end)).
+
+-spec init(atom(), atom(), pid(), pid(), pos_integer()) -> no_return().
+init(MyName, Mod, MyOutput, MyInput, Size) ->
+    %% establish the invariant that the number of outstanding requests
+    %% to MyInput is equal to Size
+    lists:foreach(fun(_) -> ask(MyInput, MyName) end, 
+		  lists:seq(1, Size)),
+    loop(MyName, Mod, MyOutput, MyInput, Mod:init()).
+
+-spec ask(pid(), atom()) -> ok.
+ask(MyInput, MyName) ->
+    MyInput ! {MyName, get},
+    ok.
+
+-spec loop(atom(), atom(), atom(), atom(), any()) -> no_return().
+loop(MyName, Mod, MyOutput, MyInput, State) ->
+
+
+
+
+
+
+
+
+
+
+
+------------------------------------------
+    Q: What should the loop do?
+          wait for a get message, then transform the next value from MyInput
+    ...
+    %% invariant: the number of requests outstanding to MyInput is
+    %% always the same (the number Size above).
+    receive
+	{MyOutput, get} ->
+	    % now we must obtain something from our input...
+	    % io:format("mapper received get message from ~p~n", [MyOutput]),
+	    receive
+		{MyInput, {put, Value}} ->
+		    io:format("mapper received put message from ~p~n", [MyInput]),
+		    ask(MyInput, MyName), % maintain invariant
+		    {NewState, Result}
+			= Mod:transform(State, Value),
+		    % io:format("mapper sending to ~p {put, ~p}~n", [MyOutput, Result]),
+		    MyOutput ! {MyName, {put, Result}},
+		    loop(MyName, Mod, MyOutput, MyInput, NewState)
+	    end
+    end.
+
+**** filterer
+------------------------------------------
+          GENERALIZED FILTERER
+
+-module(filterer).
+-export([start_link/6]).
+
+start_link(Node, MyName, Mod, MyOutput, MyInput, Size) ->
+    register(MyName,
+	     spawn_link(Node, 
+			fun() -> 
+				init(MyName, Mod, MyOutput, MyInput, Size)
+			end)).
+
+init(MyName, Mod, MyOutput, MyInput, Size) ->
+    lists:foreach(fun(_) -> ask(MyInput, MyName) end,
+		 lists:seq(1, Size)),
+    loop(MyName, Mod, MyOutput, 
+	 MyInput, Mod:init()).
+			 
+ask(MyInput, MyName) ->
+    MyInput ! {MyName, get}.
+
+loop(MyName, Mod, MyOutput, MyInput, State) ->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+------------------------------------------
+    ...
+    %% invariant: the number of requests outstanding to MyInput is
+    %% always the same (the number Size above).
+    receive
+	{MyOutput, get} ->
+            NewState
+                = get_reply(MyName, Mod, MyOutput, MyInput, State),
+            loop(MyName, Mod, MyOutput, MyInput, NewState)
+    end.
+
+-spec get_reply(atom(), atom(), pid(), pid(), any()) -> any().
+get_reply(MyName, Mod, MyOutput, MyInput, State) ->
+    receive
+	{MyInput, {put, Value}} ->
+	    ask(MyInput, MyName),  % reestablish invariant
+	    case Mod:check_transform(State, Value) of
+		{true, NewState, Result} ->
+		    MyOutput ! {MyName, Result},
+		    NewState;
+		{false, NewState} ->
+		    get_reply(MyName, Mod, MyOutput, MyInput, NewState)
+	    end
+    end.
+
+
+*** consumer
+------------------------------------------
+        GENERALIZED CONSUMER
+
+-module(consumer).
+-export([start_link/4]).
+
+-spec start_link(atom(), atom(), atom(), atom())
+		-> no_return().
+start_link(Node, MyName, Mod, MyInput) ->
+    register(MyName,
+	     spawn_link(Node, fun() -> loop(MyName, Mod, 
+					    MyInput, Mod:init()) 
+			      end)).
+
+-spec loop(atom(), atom(), atom(), any()) -> no_return().
+loop(MyName, Mod, MyInput, State) ->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+         
+------------------------------------------
+   ...
+    receive
+	{_, terminate} -> 
+	    io:format("finishing!~n", []), 
+	    exit(done)
+    after 0 -> 
+	    do_what_follows
+    end,
+    % io:format("consumer get~n", []),
+    {put, Value} = myrpc:rpc(MyInput, MyName, get),
+    % io:format("consumer got value ~p from ~p~n", [Value, MyInput]),
+    NewState = Mod:consume(State, Value),
+    % io:format("consumer looping with new state ~p~n", [NewState]),
+    loop(MyName, Mod, MyInput, NewState).
+
+
+** example system design
+------------------------------------------
+       HAILSTONE STREAM SYSTEM
+
+   Consumer        Mapper        Producer
+
+  |---------|     |-------|      |------|
+  |   peaks | <-- | graph | <--- | odds |
+  |    +    |     | max   |      |------|
+  |(Storage)|     | value |
+  |---------|     |-------|  
+
+------------------------------------------
+
+*** producer
+------------------------------------------
+            odds_producer
+
+
+-module(odds_producer).
+-export([init/0,produce/1]).
+
+-spec init() -> pos_integer().
+init() ->
+
+
+-spec produce(pos_integer()) -> {pos_integer(), pos_integer()}.
+produce(Next) ->
+
+
+------------------------------------------
+    ... 1.
+
+    ... {Next, Next+2}.
+
+*** mapper
+------------------------------------------
+         max_value_graph_mapper
+
+-module(max_value_graph_mapper).
+-export([init/0, transform/2]).
+-import(hailstone,[hailstoneMax/1]).
+
+-spec init() -> ok.
+init() ->
+    ok.
+
+-spec transform(State::any(),
+                Value::pos_integer()) 
+	       -> {any(),
+                   {pos_integer(), pos_integer()}}.
+transform(State, N) ->
+
+
+------------------------------------------
+    ... {State, {N, hailstoneMax(N)}}.
+
+*** consumer
+------------------------------------------
+           max_value_peak_consumer
+
+-module(max_value_peak_consumer).
+-export([init/0, consume/2]).
+
+-spec init() -> {pos_integer(), pos_integer()}.
+init() ->
+
+
+-spec consume(State::{pos_integer(), pos_integer()},
+	      Value::{pos_integer(), pos_integer()}) ->
+		     {pos_integer(), pos_integer()}.
+consume({Arg, ArgValue}, {NewArg, NewValue}) ->
+
+
+
+
+
+
+
+------------------------------------------
+    ... {1,1}.
+
+    ...
+    if NewValue > ArgValue ->
+	    io:format("new peak (for arg ~p) is: ~p~n", [NewArg, NewValue]),
+	    {NewArg, NewValue};
+       true -> {Arg, ArgValue}
+    end.
+
+*** overall system
+------------------------------------------
+           hailstone_stream_system
+
+-module(hailstone_stream_system).
+-import(producer,[start_link/3]).
+-export([start/1]).
+
+-spec start(pos_integer()) -> pid().
+start(BuffSize) ->
+    compile:file(myrpc),
+    compile:file(producer),
+    compile:file(odds_producer),
+    compile:file(mapper),
+    compile:file(max_value_graph_mapper),
+    compile:file(consumer),
+    compile:file(max_value_peak_consumer),
+    producer:start_link(node(),
+         odds_producer, odds_producer),
+    mapper:start_link(node(),
+         max_value_graph_mapper, 
+	 max_value_graph_mapper,
+	 max_value_peak_consumer,
+         odds_producer, BuffSize),
+    consumer:start_link(node(),
+         max_value_peak_consumer, 
+	 max_value_peak_consumer,
+         max_value_graph_mapper).
+
+
+------------------------------------------
+
+** architecture for using more distributed machines
+------------------------------------------
+   ARCHITECTURE FOR MORE DISTRIBUTION
+
+coordinator + N workers
+
+coordinator:
+   tracks state of search
+   assigns intervals to workers
+   records results on stable storage
+
+workers
+   asks coordinator for an interval
+   searches the interval
+   reports any results to coordinator
+   
+------------------------------------------

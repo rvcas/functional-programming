@@ -1,0 +1,224 @@
+COP 4020 Lecture -*- Outline -*-
+
+* distributed programming in Erlang
+
+** definition and applications
+------------------------------------------
+    WHAT IS DISTRIBUTED PROGRAMMING?
+
+A program is distributed when it executes
+on 
+
+
+
+Advantages:
+
+ - true concurrency
+ - scalability (speed, data size)
+ - extensibility
+ - availability
+ - fault tolerance
+ - access to large set of resources
+ - fits if application is intrinsically
+     distributed
+ 
+Disadvantages:
+
+ - true concurrency (synchroniztion hard)
+ - time lags
+ - no global state
+ - network partitions
+ - partial failures (one node goes down...)
+ - open system causes security problems
+ 
+
+------------------------------------------
+     ...more than one physically distinct 
+        computers, with no shared memory.
+
+     The advantages are technological
+     The disadvantages are in terms of programming, 
+        but we can overcome them
+
+------------------------------------------
+    PROBLEMS WITH DISTRIBUTED PROGRAMS
+
+Constraints:
+   - data can't be directly shared
+   - network is slow (compared to memory)
+   - resources can be local (devices)
+   - nodes and communication can fail
+   
+
+For availablity,
+    so clients can always reach a server,
+and stable storage,
+   which survives crashes of nodes,
+want more than one copy of data...
+
+
+Coordination:
+   - giving clients the illusion
+     of a 
+
+
+   Examples:
+     - selling seats in an airplane
+     - selling an item in an auction
+     - changing account information
+     
+
+------------------------------------------
+         ... logically centralized system
+
+------------------------------------------
+         BYZANTINE GENERALS PROBLEM
+
+An analogy
+
+
+       hill        valley        hill
+
+
+     general A     enemy       general B
+      + troops     troops       + troops
+
+
+------------------------------------------
+
+
+------------------------------------------
+
+  ERLANG CONCEPTS FOR DISTRIBUTED SYSTEMS
+
+Node = a computer running Erlang
+   an alive node has a name (unique atom)
+
+def: when a node N is *monitored* by 
+a node L, then if N is not responding
+then a {'DOWN', ..., N} message is sent to L.
+
+def: when a node N is *linked* to node L,
+then when either exits, the other does also.
+
+Message passing semantics:
+ - messages are delivered in the order sent
+ - messages are never corrupted or lost
+ 
+------------------------------------------
+
+        Nodes work best in a trusted environment (e.g., a LAN)
+
+        There is another distribution model, besides the one
+        mentioned, where sockets are used and the environment is untrusted
+
+        Q: Given what we have already seen in Erlang,
+            how should we make distributed programs?
+        Spawn processes on different machines...
+
+------------------------------------------
+        TESTING DISTRIBUTION
+
+Use 2 OS shells:
+
+ $ erl -sname node1
+ $ erl -sname node2
+
+        MESSAGE PASSING
+
+   {runavg, nodeA} ! Msg sent to 'runavg' on nodeA
+
+------------------------------------------
+        Simple technique, use 2 OS shells (one on each machine...)
+
+        (The -sname parameter gives a "short name", which is the only
+        thing needed on a single machine.)
+
+        (For multiple machines at UCF, there would be firewall problems.)
+
+------------------------------------------
+        BIFS FOR DISTRIBUTION
+
+call/4
+    call(Node, Mod, Function, Args)
+       ->  Result | {badrpc, Reason}
+
+spawn/2
+    spawn(Node, Fun) -> Pid
+
+
+spawn/4
+    spawn(Node, Mod, Fun, Args) -> Pid
+
+
+monitor_node/2
+    monitor_node(Node, Flag)
+        Flag : {true, false}
+
+node/0
+    node() -> Node
+
+------------------------------------------
+        Use call/4 to call from one process to another
+
+        node/0 returns the name of the current node
+
+** fault tolerance and atomicity
+
+------------------------------------------
+         LINKING AND MONITORING
+
+Linking: 2 nodes can be linked so that
+   when one node goes down, 
+   then the other does too!
+
+  link(Pid)
+  spawn_link(Node, Fun) -> Pid
+  spawn_link(Node, Mod, Fun, Args) -> Pid
+
+
+Monitoring: if A monitors B,
+   then A is sent a message:
+
+   - {'UP', B, ...}, when B joins net
+   - {'DOWN', B, ...}, when B leaves net
+    
+   monitor(process, Pid)
+   spawn_monitor(Fun) -> {Pid, Ref}
+   spawn_monitor(Node, Mod, Func, Args)
+           -> {Pid, Ref}
+------------------------------------------
+
+        links form an equivalence class (no direction)
+           spawn_link creates a link between parent and child
+
+        monitors are directed
+
+** security ?
+
+------------------------------------------
+           COOKIE PROTECTION SYSTEM
+
+Designed for system running on a LAN.
+
+Nodes have 1 cookie each.
+
+Only nodes with the same cookie can talk
+
+    erlang:set_cookie/2
+        set_cookie(Node, Cookie) -> true
+
+    erlang:get_cookie/0
+        get_cookie() -> Cookie
+
+Cookie
+   random string created by Erlang on machine
+
+Ways to get the same cookie in a system:
+
+ - change the $HOME/.erlang.cookie file
+ - use:    erl -setcookie C
+ - use erlang:set_cookie/2
+------------------------------------------
+
+        The cookie is an atom.

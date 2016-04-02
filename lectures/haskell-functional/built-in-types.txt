@@ -1,0 +1,337 @@
+Lecture -*- Outline -*-
+
+------------------------------------------
+
+* Built-in types of Haskell
+
+According to Abelson and Sussman: each language has:
+
+-  means of computation (data and operations)
+-  means of combination (structured data and composition techniques)
+-  means of abstraction
+
+In this topic, we focus on means of computation (data and operations)
+
+------------------------------------------
+
+* Simple (atomic) types (Thompson 3.1-2, 3.5-6, Davie 2.7)
+
+Bool, Char, and Integer
+also types Int (machine ints), Float, Double, ...
+
+------------------------------------------
+
+* Haskell booleans
+
+Bool
+   Values:
+	+ abstract values: true and false
+	+ printed: True, False
+   Operations:
+	+ constructors: True, False
+	+ functions: &&, ||, not, ==, /=
+        + syntax: if _ then _ else _
+
+&& and || are short-circuit
+
+	Bool is of the class Eq, hence it has == and /=
+		(actually it's also a member of many other classes,
+                e.g., Ord, so False < True)
+
+        look in the Prelude file to see the definitions;
+                search for "Boolean type"
+
+------------------------------------------
+
+* Haskell characters
+
+Char
+   Values:
+	+ abstract values: a, b, c, d, ...
+	+ printed: 'a', 'b', 'c', ...
+   Operations:
+	+ constructors: 'a', 'b', ...,
+         '\n', (toEnum 10), ...
+	+ functions: fromEnum, toEnum, ...
+			==, /=, <, <=, ...
+
+	use C style escapes for chars
+	
+	Char is a member of the classes Eq, Ord, Enum, (and Bounded)
+
+------------------------------------------
+
+* Haskell integers
+
+Integer
+   Values:
+	+ abstract values: 0, 1, -1, ...
+	+ printed: 0, 1, -1, ...
+   Operations:
+	+ constructors: 0, 1, -1, 2, -2, 3, ...
+	+ functions: +, -, *, negate,
+		abs, signum,
+		quot, rem, div, mod,
+		==, /=, <, <=, ...
+
+	Integer is a member of the classes Eq, Ord, Num, Real,
+                        Integral, Enum and a bunch of others
+
+	Float literals must have digits on both sides of the decimal point
+
+------------------------------------------
+
+* Type classes in the preclude
+
+  Eq (==, /=)
+
+  Ord (compare, <, <=, >=, >, min, max)
+
+  Enum (succ, pred, toEnum, fromEnum, 
+        enumFrom, enumFromThen, ...)
+
+  Bounded (minBound, maxBound)
+
+  Read (readsPrec, readList)
+
+  Show (showsPrec, show, showList)
+
+  Num (+, -, *, negate, abs, signum, fromInteger)
+
+    Real       (toRational)
+
+    Integral   (quot, rem, div, mod, quotRem, 
+                divMod, toInteger)
+
+    Fractional (/, recip, fromRational)
+
+    Floating   (pi, exp, log, sqrt, **, logBase,
+                sin, cos, tan, asin, ...)
+    RealFrac   (properFraction, truncate, round, 
+                ceiling, floor)
+    RealFloat   (floatRadix, floatDigits, ...)
+
+Use :info Num in the interpreter 
+to find out more about the different classes 
+
+------------------------------------------
+
+* Primitive types in type classes
+
+- Bool is in Eq, Ord, Enum, Read, Show, Bounded
+
+- Char is in Eq, Ord, Enum, Bounded
+
+- Int is in Eq, Ord, Num, Real, Integral, Enum, Bounded
+
+- Integer is in Eq, Ord, Num, Real, Integral, Enum
+ 
+- Float is in Eq, Ord, Num, Real, Fractional, Floating, 
+              RealFrac, RealFloat, Enum
+- Double is in Eq, Ord, Num, Real, Fractional, Floating, 
+               RealFrac, RealFloat, Enum
+
+Can show these using :info in the interpreter:
+
+Prelude> :info Char
+data Char = GHC.Types.C# GHC.Prim.Char#         -- Defined in `GHC.Types'
+instance Bounded Char -- Defined in `GHC.Enum'
+instance Enum Char -- Defined in `GHC.Enum'
+instance Eq Char -- Defined in `GHC.Classes'
+instance Ord Char -- Defined in `GHC.Classes'
+instance Read Char -- Defined in `GHC.Read'
+instance Show Char -- Defined in `GHC.Show'
+Prelude>
+
+------------------------------------------
+
+* Structured types (Thompson 5, Davie 2.8, 3.11, 2.10)
+
+These are some of the means of combination
+
+	type	constructors    example
+        _________________________________________
+        (a,b)   (,)             (True,3)
+        [a]     [], :           [1,2,3], 1:2:3:[]
+        a -> b  \ ->            (\x -> x)
+
+------------------------------------------
+
+* Pairs, tuples, and unit (Thompson 5.2, Davie 2.10)
+
+------------------------------------------
+
+* Tuples in Haskell
+
+(a,b), (a,b,c), ...,  and ()
+
+   Values:
+       + abstract values: pairs of a & b,
+		triples of a & b & c, ...
+		an empty tuple
+       + printed: (1,True), (3, 4, 5), ()
+
+   Operations:
+        + constructor (,), (,,), ...
+	+ fst, snd
+
+  Note: no single element tuples!
+  Q: Why are single-element tuples like (3+4) not in Haskell?
+     because they would overlap (syntax & semantics) with 
+     normal parenthesized expressions
+
+  There is a way to define record-like types in Haskell also...
+
+------------------------------------------
+
+* Examples of functions over tuples
+
+> fst :: (a,b) -> a
+> fst (a,_) = a
+
+> snd :: (a,b) -> b
+> snd (_,b) = b
+
+------------------------------------------
+
+* Constructing tuples
+
+Examples:
+
+   (1,True)
+   (1,2,3)
+   (1,(2,3))
+   (1,(True,2.8))
+   ((1,True),2.8)
+   ()
+   ("zero tuple:",())
+
+   Try these in the interpreter,
+   note the differences between (1,(2,3)) and (1,2,3)
+
+   Note that (1) is NOT a tuple
+
+   Q: What is the type of each?
+
+	so ( , ) makes pairs, (,,) makes triples, etc.
+
+	Why this notation?
+		idea is that in a functional language want only 1 argument
+			and result for functions
+		f(x,y) is interpreted as f applied to the pair (x,y)
+
+------------------------------------------
+
+* Functions (Thompson 10)
+
+a -> b
+   
+Values:
+
++ abstract values: partial functions from a to b
+   
+Operations:
+
++ constructor: \var -> expression
+
++ syntax: f x y = expression
+               
+            means roughly
+
+          f = (\x -> (\y -> expression))
+
++ special functions: (.), flip, curry, uncurry
+
+Examples:
+
+id :: a -> a
+id = \x -> x
+
+(.) :: (b -> c) -> (a -> b) -> (a -> c)
+(f . g) x = f (g x)
+
+flip :: (a -> b -> c) -> b -> a -> c
+flip f x y = f y x
+
+------------------------------------------
+
+* Binding, pattern matching, simple functions
+  
+(Thompson p. 74, chapter 7, Davie 2.9, 3.5)
+
+Generally, use pattern matching to extract parts of (algebraic) types
+
+------------------------------------------
+
+* Pattern matching and binding
+
+Examples:
+
+- pattern matching and binding in tuples:
+
+    let (x,y,z) = (1,2,3) in x
+
+    let (x,y,z) = (1,2,3) in z
+
+    let (_,y,_) = (1,2,3) in y
+
+- pattern matching and binding in list:
+
+    let (a:as) = 1:2:3:[] in a
+
+    let (a:as) = [1,2,3] in as
+
+Try these in the interpreter
+
+------------------------------------------
+
+* Patterns in function definition
+
+see file Yodaize.hs
+
+> yodaize (subject, verb, adjective) =
+>     (adjective, subject, verb)
+
+
+Examples:
+
+- yodaize ("food", "is", "good")
+
+- yodaize ("study", "you", "will")
+
+------------------------------------------
+
+* For you to do
+
+Problems: 
+
+- Write average :: (Float, Float) -> Float
+
+  such that, for example
+
+  average (1.0, 3.0) = 2.0
+  average (3.0, 50.0) = 26.5
+
+  (see file Average.hs)
+
+- Write max3 :: Ord a => (a, a, a) -> a
+  to take the maximum of 3 arguments
+
+  (see file Max3.hs)
+
+- Write listMax :: Ord a => [a] -> a
+  to determine the maximum of list
+  (see file ListMax.hs)
+
+- Write the three functions
+  fst3 :: (a, b, c) -> a
+  snd3 :: (a, b, c) -> b
+  thd3 :: (a, b, c) -> c
+
+  such that for all t :: (a, b, c)
+
+  t = (fst3 t, snd3 t, thd3 t)
+
+  (see file Triples.hs)
+
+------------------------------------------

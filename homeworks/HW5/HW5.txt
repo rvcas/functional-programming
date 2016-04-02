@@ -1,0 +1,31 @@
+Homework 5
+----------
+
+There is only one problem and it is worth 10 points. 
+
+Problem 1:
+----------
+
+Implement a simple database in Erlang that support the functions:
+
+- start
+- stop
+- insert
+- retrieve
+
+To do this, you have to complete the code in the body of the
+loop function.  You must not change any other code!!!
+
+insert(Key, Value) associates the value Value with the key Key.
+  It should return the atom done.
+
+retrieve(Key) retrieves the value associated with the Key key.  If
+  no value is associated with the key Key, then the atom undefined
+  should be returned.
+
+stop() unregisters db and ensures that the process terminates.  The atom 
+  stopped should be returned.
+
+You can test your implementation by running db_tests:start().
+
+ 

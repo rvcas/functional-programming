@@ -1,0 +1,114 @@
+COP 4020 meeting -*- Outline -*-
+
+------------------------------------------
+
+* Contact information
+
+Instructor   : Dr. Pawel Wocjan
+Email        : wocjan@eecs.ucf.edu
+Office       : HEC 341 (Harris Center Bldg. 116)
+Office Hours : TuTh 5:45 - 7:00PM  
+
+GTA          : Sungchul Jung
+Email        : sungchul@knights.ucf.edu
+Office       : TBA
+Office Hours : TBA
+
+URL: http://www.eecs.ucf.edu/~wocjan/COP4020
+
+------------------------------------------
+
+* Course time and location
+
+Time         : TuTh 4:30 - 5:45 PM
+Location     : CB2 0206
+
+------------------------------------------
+
+* Course objectives
+
+- Quickly Learn new programming languages,
+
+- Master, i.e., effectively use them,
+
+- Evaluate what combination of 
+  programming model and language features 
+  would best solve a given problem, 
+
+------------------------------------------
+   
+* Learning outcomes
+
+- Concepts 
+  understand, use, apply concepts and terms
+
+- Use models 
+  use each essential model in programming model
+  to solve problems
+
+- Evaluate models 
+  for each essential programming model
+  convincingly evaluate its advantages
+  for solving a given problem
+
+- Map to languages 
+  convincingly explain what features 
+  in C, C++, and Java 
+  support each essential programming model
+
+------------------------------------------
+
+* Plan for the course
+
+Learn about
+
+  - functional programming
+  - parallel programming
+  - actor-based concurrent programming
+
+by using Haskell and Erlang.
+ 
+------------------------------------------
+
+* Grading (homework assignments, exams)
+
+There will be two exams.  The midterm exam
+is worth 40 points.  The final exam is worth
+60 points.  There will be 5 homeworks assignments.
+Each homework assignment is work is worth 20 points.
+
+- exams     : 40 pts + 60 pts = 100 pts
+- homeworks : 5 x 20 pts      = 100 pts
+=========================================
+- total     :                   200 pts
+
+Absolutely no late homework.  No exceptions.  
+You will receive 0 points for the homework assignment 
+if you submit it after the deadline.
+
+The final grade will be computed as follows:
+
+points  grade
+
+>= 180  A  
+>= 170  A-
+>= 160  B+
+>= 150  B
+>= 140  B-
+>= 130  C+
+>= 120  C
+>= 110  C-
+>= 100  D+
+>= 90   D
+>= 80   D-
+less    F
+
+Dates and times for the exams:
+
+- The first exam will be on 10/15/2015 (Thursday) 
+  during the regular class time.
+
+- The second (final) exam will take place during the 
+  official UCF final examination period.
+
+------------------------------------------

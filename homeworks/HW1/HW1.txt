@@ -1,0 +1,98 @@
+Homework 1
+----------
+
+There are 4 problems and each problem is worth 5 points.
+
+
+Problem 1:
+----------
+
+Write the function 
+  
+  average3 :: (Double,Double,Double) -> Double
+
+which takes a triple of Doubles, (x,y,z), and returns a Double that is 
+the average (i.e., the arithmetic mean) of x, y, and z.
+
+Save your solution inside the file Average3.hs and 
+make sure that your file starts with the module declaration:
+
+module Average3 where 
+
+You can test your solution with Average3Tests.hs.
+
+
+Problem 2: 
+----------
+
+This problem asks you to write a function in three different ways. 
+
+(a) Write the function
+
+  add_list_comprehension :: Integer -> [Integer] -> [Integer]
+
+that adds the first argument to each element of the second argument 
+and returns the resulting list. You have to use a list comprehension.
+
+(b) Write the function
+
+  add_list_recursion :: :: Integer -> [Integer] -> [Integer]
+
+that adds the first argument to each element of the second argument 
+and returns the resulting list. You have to use recursion.
+
+(c) Write the function 
+
+  add_list_map :: Integer -> [Integer] -> [Integer]
+
+that adds the first argument to each element of the second argument 
+and returns the resulting list. You have to use the Haskell
+built-in function map.
+
+Save your solutions in the file AddList and make sure
+that it starts with the module declaration:
+
+module AddList where
+
+You can test your solutions using AddListTests.hs.
+
+
+Problem 3: 
+----------
+
+Use the Haskell operator ++ and the built-in
+functions drop and take to implement
+
+  deleteNthElement :: Int -> [a] -> [a]
+
+that removes the element at index n in the the second argument
+where n is the first argument.
+
+You can test your solution with DeleteNthElementTests.hs.
+
+Problem 4:
+---------- 
+
+Write the function
+
+  unique :: (Eq a) => [a] -> [a]
+
+that takes a list and removes all but the 
+first occurrence of every duplicated element
+of the list.  
+
+You can test your solution with UniqueTests.hs.
+
+
+UPLOAD INSTRUCTIONS:
+
+You have to zip the four files
+
+- Average3.hs
+- AddList.hs
+- DeleteNthElement.hs
+- Unique.hs
+
+with your solutions and upload the zip archive to webcourses.
+
+(Note: It is also OK to use literate Haskell files with the extension lhs instead of hs.)

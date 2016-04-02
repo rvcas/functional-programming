@@ -1,0 +1,11 @@
+COP 4020 Lecture -*- Outline -*-
+
+	lecture 1
+* model
+     primitives: spawn, send(!), and receive
+
+* actors
+     stateless and stateful servers
+
+* genserver
+     generalizing servers and writing gen_server

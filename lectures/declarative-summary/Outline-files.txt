@@ -1,0 +1,4 @@
+COP 4020 Lecture -*- Outline -*-
+
+	lecture 1
+* summary-review

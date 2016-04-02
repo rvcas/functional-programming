@@ -1,0 +1,32 @@
+Lecture -*- Outline -*- for Haskell and Functional Programming
+
+* introduction
+
+* lexical-matters
+
+* built-in-types
+
+* lists
+       
+* data-driven-recursion
+
+* functional
+
+* higher-order
+
+* types
+
+* io
+
+* parser
+
+-- working on monads
+
+* monads 
+        see Monads.lhs
+
+-- will not cover naming
+
+* naming
+        see Naming.lhs
+

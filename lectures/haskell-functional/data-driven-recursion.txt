@@ -1,0 +1,230 @@
+Lecture -*- Outline -*-
+
+------------------------------------------
+
+* Data-driven recursion (Thompson 14, Davie sections 3.2, 4.4)
+
+We won't always be working with lists, need to be able to write
+recursions over any type of data.
+
+Key idea: recursion is based on the structure (grammar) of a type.
+
+------------------------------------------
+
+* Data declaration in Haskell
+
+Check out 
+http://learnyouahaskell.com/making-our-own-types-and-typeclasses
+
+> data Color = Red | Yellow | Green
+
+> data Color = Red | Yellow | Green deriving (Eq, Show)
+
+What is the difference between the above two definitions?
+
+------------------------------------------
+
+* Data declaration in Haskell
+
+>data Shape = Circle Float |
+>             Rectangle Float Float
+>               deriving (Eq, Show)
+
+>area :: Shape -> Float
+>area (Circle r)      = pi * r * r
+>area (Rectangle h w) = h * w
+
+see Shape.hs
+
+------------------------------------------
+
+* Definition of natural numbers
+
+> data Nat = Zero | Succ Nat deriving (Eq, Show)
+
+To define a function 
+
+  f :: Nat -> t
+
+define it recursively by:
+
+	f Zero     = ...  -- base case
+
+	f (Succ n) = ...  -- inductive case
+
+------------------------------------------
+
+* Example of an unary function defined over natural numbers: toInteger
+
+  toInteger (Succ (Succ Zero)) == 2
+  toInteger (Succ Zero) == 1
+  toInteger Zero == 0
+
+------------------------------------------
+
+* Implementation of toInteger
+
+> toInteger :: Nat -> Integer
+> toInteger Zero     = 0
+> toInteger (Succ n) = 1 + (toInteger n)
+
+------------------------------------------
+
+* Example of a binary function defined over natural numbers: plus
+
+  plus Zero (Succ Zero) == Succ Zero
+  plus (Succ Zero) (Succ Zero) == (Succ (Succ Zero)) 
+  plus (Succ (Succ (Succ Zero))) (Succ (Succ Zero))
+    == (Succ (Succ (Succ (Succ (Succ Zero)))))
+
+------------------------------------------
+
+* Implementation of plus for natural numbers
+
+> plus :: Nat -> Nat -> Nat
+
+Base case: 
+
+> plus Zero n = n
+
+Inductive case:
+
+  want     plus (Succ (Succ Zero)) Zero = (Succ (Succ Zero))
+  given    plus       (Succ Zero)  Zero =       (Succ Zero)
+	
+  How do we get 2 from 1?
+  Generalizing from this example,
+
+	   plus (Succ m) n = plus m (Succ n)
+
+> plus Zero n = n
+> plus (Succ m) n = plus m (Succ n)
+
+Q: How does the structure of the program resemble the data declaration?
+   note the recursion occurs where the grammar is recursive.
+
+Q: How does the data declaration resemble a grammar?
+
+Pitfalls: need to parenthesize the patterns
+
+------------------------------------------
+
+* For you to do
+
+-- data Nat = Zero | Succ Nat deriving (Eq, Show)
+
+Problems: 
+
+- Write the function 
+
+    mult :: Nat -> Nat -> Nat
+
+  such that
+
+    mult Zero (Succ Zero) == Zero
+    mult (Succ (Succ Zero)) (Succ (Succ (Succ Zero)))
+         == (Succ (Succ (Succ (Succ (Succ (Succ Zero))))))
+
+- Write the function 
+
+    equal :: Nat -> Nat -> Bool
+  
+  without using (==), but such that (equal n1 n2) == (n1 == n2)
+
+  see Naturals.hs for the implementation of these and other functions
+
+------------------------------------------
+
+* Generalizing how to write recusions
+
+- Define a non-empty list in Haskell
+
+   a non-empty list is 
+     either [x],
+     or     y:lst, where lst is a non-empty list
+
+- Write the function
+
+    maxl :: (Ord a) => NonEmptyList a -> a
+
+  such that
+
+    maxl (One 3)               == 3
+    maxl (1 :# (One 3))        == 3
+    maxl (7 :# (1 :# (One 2))) == 7
+
+- Write the function
+ 
+    nth :: NonEmptyList a -> Nat -> a
+
+  such that
+
+    nth (One 1) Zero                                    == 1
+    nth (0 :# (1 :# (2 :# (One 3)))) (Succ (Succ Zero)) == 2
+
+------------------------------------------
+
+* Implementation of non-empty list
+
+>data NonEmptyList a = One a | a :# (NonEmptyList a)
+
+>infixr :# 5
+
+Pitfalls: 
+
+- can't use : as a constructor, as already used for lists
+  (kind of irregular that can't overload that...)
+   
+- the infixr declaraction avoids having to parenthesize examples
+
+- also constructors need to be parenthesized
+  One(1) isn't the same as (One 1), and One(1) doesn't work.
+
+  see NonEmptyList.hs for for solution
+
+Read the paragraph containing the sentence 
+
+"It's a very strong convention in Haskell 
+to *never add types in data declarations*"
+
+http://learnyouahaskell.com/making-our-own-types-and-typeclasses
+
+------------------------------------------
+
+* Recursion over grammars
+
+> data Exp =   BoolLit Bool 
+>            | IntLit Integer
+>            | Sub Exp Exp
+>            | Equal Exp Exp
+>            | If Exp Exp Exp
+>                deriving (Show, Eq)
+>
+> data Value = BV Bool | IV Integer | Wrong
+>                deriving (Show, Eq)
+
+------------------------------------------
+
+* For you to do
+
+Problem: Write the function
+
+  eval :: Exp -> Value
+
+such that
+
+  eval (BoolLit True)                            == (BV True)
+  eval (IntLit 5)                                == (IV 5)
+  eval (Sub (IntLit 5) (IntLit 4))               == (IV 1)  
+  eval (Equal (BoolLit True) (BoolLit False))    == (BV False)
+  eval (If (BoolLit True) (IntLit 4) (IntLit 5)) == (IV 4)
+
+Q: What are the base cases?
+
+Q: Where should there be a recursion?
+
+Q: Examples for each recursive case?
+
+See ExpValueEval.hs
+
+------------------------------------------

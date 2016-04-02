@@ -1,0 +1,330 @@
+COP 4020 Lecture -*- Outline -*-
+
+* The Erlang Language (5.7)
+
+------------------------------------------
+          ERLANG (5.7)
+
+From Ericsson telecommunications
+- automatic memory management
+- hides internal representation of data
+- efficient threads
+- high-performance s/w fault tolerance
+
+- dynamically typed
+- first class functions
+- asynchronous message passing
+
+- used in Open Telecom Platform
+- updated while running
+
+------------------------------------------
+
+     Q: What other language do we know that hides the representation of data?
+     Oz
+
+** computation model (5.7.1)
+
+------------------------------------------
+          COMPUTATION MODEL
+
+program = process*
+processes = port + mailbox
+port = stream + recursive function
+
+pattern matching can
+  - wait for messages
+  - remove some from mailbox
+  - leave others
+
+message passing asynchronous
+
+processes are independent
+
+no shared references between processes
+
+transparent distribution
+
+failure detection (linking),
+   - sends message
+     when another process fails
+
+replicated database
+------------------------------------------
+
+        Q: What features are useful for reliability?
+        independent processes, asynchronous messages, no shared refs
+
+        DB compensates for the lack of mutable store
+
+** Semantics of Erlang (5.7.2)
+
+   We'll skip the syntax, but see the Erlang book
+
+------------------------------------------
+      CONCURRENCY AND MESSAGE PASSING
+          PRIMITIVES IN ERLANG
+
+PID = spawn(M,F,A)
+  -- creates new process with id PID
+     running module M's function F
+     with argument list A
+
+Pid!Msg
+  -- sends Msg to process with id Pid
+
+
+receive 
+    Pattern1 [when Guard1] -> Body1;
+    ...
+    PatternN [when GuardN] -> BodyN;
+  [ after Expr -> BodyT; ]
+
+
+  -- blocks until a message matches
+     one of the Patterns (with true guard)
+     removes it from mailbox,
+     binds values to pattern variables,
+     executes the corresponding body
+
+  -- the after clause is optional,
+     it gives a timeout,
+     after which BodyT is executed
+
+
+
+------------------------------------------
+        the send syntax is inspired by Hoare's CSP
+
+------------------------------------------
+
+  COMPARISON OF RECEIVE WITH CASE IN OZ
+
+
+
+
+
+
+
+------------------------------------------
+
+     Q: How are the parts of Erlang's "receive" like "case" in Oz?
+        - the "when" is like andthen in Oz
+        - the "->" is like "then"
+        - the ";" is like []
+        - the "after" like "else", but only when Expr is 0.
+
+        a timeout of 0 means after is executed if no messages match
+
+*** translation into Oz
+
+------------------------------------------
+       TRANSLATION INTO OZ
+
+process ~~> thread + port
+send to process ~~> send to port
+mailbox ~~>
+receive ~~> function on 2 streams (I/O)
+------------------------------------------
+
+        ... port's stream
+
+**** without timeout
+
+------------------------------------------
+  TRANSLATION OF RECEIVE WITHOUT TIMEOUT
+
+Let B, B1, B2, be Erlang body statements
+
+We simulate the effect of B on
+a list representing the Erlang mailbox's
+current contents:
+
+For a sequence B1 B2:
+
+ T((B1 B2) Sin Sout)
+ ~~>
+    local Sout2 in
+      T(B1 Sin Sout2)
+      T(B2 Sout2 Sout)
+    end
+
+For a simple (atomic) statement,
+where receive doesn't appear in B:
+
+ T(B Sin Sout)         
+ ~~> B
+     Sout=Sin
+
+For a receive statement:
+
+ T(receive P1 -> B1; ... PN -> BN;
+   Sin Sout)
+ ~~> 
+ local
+   fun {Loop S L#E Sout}
+     case S of
+       M|S1 then
+         case M of 
+            T(P1) then E=S1 T(B1 L Sout)
+         ...
+         [] T(PN) then E=S1 T(BN L Sout)
+         else E1 in
+              E=M|E1 {Loop S1 L#E1 Sout}
+         end
+     end
+   end
+   L
+ in
+   {Loop Sin L#L Sout}
+ end
+------------------------------------------
+        Q: What is T?
+        The translation function
+        Q: What is L?
+           the head of the intermediate list of rejected messages
+
+        Q: What is S1 above?
+        not a mistake, it's the new tail of S (the input)
+
+        Q: What is L#L doing?
+           it's a difference list of the rejected messages, starts empty
+
+        Q: How would you deal with the guards?
+           translate them to Oz.
+
+        Pattern translation:
+            T({name, Var}) ~~> name(Var)
+            e.g., T({ones, X}) ~~> ones(X)
+------------------------------------------
+     EXAMPLE TRANSLATION TO OZ
+
+Consider the Erlang
+
+  receive
+    {ones, X} -> R=X;
+    {tens, Y} -> R=Y*10;
+  receive
+    {factor, Z} -> Ans=Z*R
+
+The translation of this into Oz
+using Sin and Sout would be:
+
+T(receive
+    {ones, X} -> R=X;
+    {tens, Y} -> R=Y*10;
+  receive
+    {factor, Z} -> Ans=Z*R
+  Sin Sout)
+
+~~> (by rule for sequencing)
+
+local Sout2 in
+  T(receive
+    {ones, X} -> R=X;
+    {tens, Y} -> R=Y*10
+  Sin Sout2)
+  T(receive
+    {factor, Z} -> Ans=Z*R
+  Sout2 Sout)
+end
+
+Let's focus on the first one of these:
+
+  T(receive
+    {ones, X} -> R=X;
+    {tens, Y} -> R=Y*10
+  Sin Sout2)
+
+~~> (by rule for receive, translating patterns)
+
+ local
+   fun {Loop S L#E Sout}
+     case S of 
+       M|S1 then
+         case M of 
+            ones(X) then E=S1 T(R=X L Sout)
+         [] tens(Y) then E=S1 T(R=Y*10 L Sout)
+         else E1 in
+              E=M|E1 {Loop S1 L#E1 Sout}
+         end
+     end
+   end
+   L
+ in
+   {Loop Sin L#L Sout2}
+ end
+
+~~> (by rule for atomic statements, twice)
+  
+ local
+   fun {Loop S L#E Sout}
+     case S of 
+       M|S1 then
+         case M of 
+            ones(X) then E=S1 R=X Sout=L)
+         [] tens(Y) then E=S1 R=Y*10 Sout=L
+         else E1 in
+              E=M|E1 {Loop S1 L#E1 Sout}
+         end
+     end
+   end
+   L
+ in
+   {Loop Sin L#L Sout2}
+ end
+
+------------------------------------------
+
+------------------------------------------
+     EXAMPLE WITH DATA
+
+Suppose the initially the mailbox is
+(in Oz list notation):
+
+ factor(7)|tens(4)|END
+
+What happens when we execute this with
+
+ Sin = factor(7)|tens(4)|END
+ Sout2 = _
+
+
+
+
+
+
+
+
+
+
+
+
+
+------------------------------------------
+
+ ...
+  We run with Sin=factor(7)|tens(4)|END
+           and Sout2=_
+ so do
+
+        Sin .................       Sout2
+  {Loop factor(7)|tens(4)|END  L# L  _}
+        M'......  S1'........ L' E' Sout'  % note L' = L = E'
+ = (factor doesn't match)
+   E' = factor(7)|E1'
+   {Loop tens(4) |END  L' # E1' Sout'}
+          M'' Y'' S1'' L''  E'' Sout''   % note L'' = L  and E1' = E''
+ = (match on second case)
+    E''=S1'', so S1'' = END = E1'' 
+    R=4*10, so R = 40
+    Sout'' = L'', so now L' = Sout'' = Sout' = Sout2 = factor(7)|END
+
+
+**** with timeout
+        Q: How would you handle a non-zero timeout?
+        use an Alarm and WaitTwo to make a race between messaging and
+        the alarm
+
+        Q: How would you handle a zero timeout?
+        just check the messages first, before using the timeout code

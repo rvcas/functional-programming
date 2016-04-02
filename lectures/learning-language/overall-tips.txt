@@ -1,0 +1,86 @@
+COP 4020 meeting -*- Outline -*-
+
+Overall Tips for Learning Programming Languages
+
+------------------------------------------
+
+* What to search for?
+
+- Implementation (compiler, interpreter)
+  possibly also an integrated development environment (IDE)
+
+- Documentation
+
+Minimal environment:
+- a text editor + compiler/interpreter
+
+Integrated development environment:
+  some students think getting too much help (eclipse, visual studio)
+  hampers learning.
+
+------------------------------------------
+
+* What documentation?
+
+- Language Reference Manual
+   - syntax
+   - types and type checking
+   - semantics
+
+- Tutorial with examples
+
+When you read:
+  - think about (check) examples
+  - run examples
+  - try things out on your own
+  - learn strategy + tactics
+
+    strategy is big picture (overall design principles)
+  
+    tactics are smaller ideas (e.g., design patterns, code fragments)
+
+------------------------------------------
+
+* How compilers work?
+   
+  character stream
+        |
+        |"public static void ..."
+  ______v___________ 
+ | Lexical Analysis |
+ |__________________| 
+        |        "void"                      
+   token stream  "static"
+        |        "public"
+ _______v___________
+|     Parser        |
+|___________________|
+        |             CompilationUnit
+   abstract syntax        |     \
+       tree           ClassDecl InterfaceDecl
+        |                 |         |
+ _______v___________  MethodDecl   ...
+|  Static Checker   |     |
+|___________________|    ...
+        |
+   annotated AST
+        |
+ _______v___________ 
+|  Code Generation  |
+|___________________|
+        |
+        v
+    object code
+
+------------------------------------------
+
+* Compiler phases and corresponding grammars
+
+Each of these phases has a different grammar 
+              
+- lexer          : regular
+- parser         : context-free
+- static checker : attribute (or context-sensitive)
+
+------------------------------------------
+

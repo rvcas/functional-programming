@@ -1,0 +1,74 @@
+COP 4020 meeting -*- Outline -*-
+
+------------------------------------------
+* Programming language
+
+def: a *programming language* is
+a language that is capable of
+expressing all computations.
+
+
+def: a *general-purpose language*
+is one that is not tailored to some
+particular application area.
+
+
+def: a *special-purpose language*
+is a language that is designed to
+support some particular application.
+
+-----------------------------------------
+
+* Examples of programming languages:
+
+Ada, Algol, AspectJ, Basic, C, C++, C#, 
+Clojure, Cobol,  Common Lisp, Erlang,
+F#, Haskell, Java, JavaScript, OCaml, 
+Pascal, PHP, Prolog, Python, Racket, 
+Ruby, Scheme, Smalltalk, Snobol
+
+-----------------------------------------
+
+* Computational models
+
+def: A *computational model* is a very
+small programming language that provides
+primitives necessary for computation.
+
+Properties of computation models (Abelson et al)
+
+- data (operations, means of computation),
+- structuring mechanisms (means of combination),
+- abstraction mechanisms (means of abstraction)
+
+------------------------------------------
+
+* Examples of computational models
+
+- a Reduced Instruction Set Computer
+           
+- the lambda calculus (functional programming)
+
+------------------------------------------
+
+* Programming models
+
+def: A *programming model* (or *paradigm*)
+is a programming language together with:
+
+- a way to design, code, test/verify/reason
+
+    a way to approach problems in design
+    a way to *organize* programs (a style)
+
+- a set of questions
+
+    how to evaluate a design/program
+    what makes a good/bad design/program
+
+Examples: 
+
+- object-oriented programming, 
+
+- functional programming
+

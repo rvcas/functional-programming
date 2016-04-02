@@ -1,0 +1,108 @@
+Lecture -*- Outline -*-
+
+------------------------------------------
+
+* Lexical matters in Haskell (Thompson 3.7, Davie 2.14, appendix C.2-3)
+
+------------------------------------------
+
+* Important and unusual lexical conventions
+
+<varid>    ::= <small> { <idchar> }
+<conid>    ::= <large> { <idchar> }
+<idchar>   ::= <small> | <large> | <digit> | '
+<small>    ::= <ascSmall> | _
+<digit>    ::= 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
+<large>    ::= <ascLarge> 
+<ascLarge> ::= A | B | C | D | ... | Z
+<ascSmall> ::= a | b | c | d | ... | z
+
+- Case matters
+
+    identifiers : fact, x y
+    constructors: Rational, Stack
+
+- Layout (white space) matters:
+    (if omit braces and semicolons,
+    following "where", "let", "do", and "of")
+  
+  Example (Layout.hs):
+
+        -- works, correct indentation
+	let x = 3
+	    y = 4
+	in x + y
+
+        -- leads to parsing error, wrong indentation
+        let x = 3
+        y = 4
+        in x + y
+
+        -- uses the symbols: { ; } 
+	let { x = 3;
+	y = 4
+	} in x + y
+
+	Simplified layout rules:
+          following token determines indentation level => {
+          same indentation as that token => ;
+          less indentation => }
+
+	Watch out, you can get syntax errors from bad indentation!
+
+        See sections 2.7 and 10.3 of the Haskell report for details
+
+------------------------------------------
+
+* Identifiers and operators (Thompson 1.7, Davie 2.14.2)
+
+- Identifiers (not infix) can use letters, 
+  digits, primes and underscores (_)
+
+- Case matters
+
+varids:
+
+  start with a-z
+
+  examples: _, pythag, fac, x, y', x3'n_, aGoodId
+
+conids:
+
+  start with A-Z
+
+  examples: Stack, Rational, Typ'_3
+
+------------------------------------------
+
+* Operators 
+
+Examples:
+  +, -, !!, ++, ==, /=
+  :, :#
+
+Notes:
+
+  1. Drawn from: !#$%&*+./<=>?@\^|-~:
+     and unicode symbols and punctuation
+
+  2. An operator is a constructor
+      if it starts with :
+
+  3. All operators are infix 
+     except unary negation (-)
+
+  4. Any identifer can be made into
+     an infix operator using backquotes
+
+		3 `div` 4
+
+  5. An infix operator can be used as
+     an identifier when put in parentheses
+
+               (+) 3 4
+
+        Because operator strings are maximal length strings of
+        symbols, instead of 2*-3 you have to write 2*(-3).
+
+------------------------------------------

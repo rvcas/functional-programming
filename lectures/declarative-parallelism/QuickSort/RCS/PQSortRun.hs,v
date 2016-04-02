@@ -1,0 +1,70 @@
+head	1.1;
+access;
+symbols;
+locks
+	leavens:1.1; strict;
+comment	@# @;
+
+
+1.1
+date	2013.10.18.13.00.39;	author leavens;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@-- $Id$
+module Main where
+-- compile with:
+--   ghc -O2 QuickSortRun.hs -threaded -rtsopts -eventlog
+
+-- run with:
+--   ./QuickSortRun +RTS -N -s -ls
+--    threadscope QuickSortRun.eventlog
+
+-- import QuickSort
+import Control.Exception (evaluate)
+import Control.Parallel.Strategies
+import Control.DeepSeq
+import System.Random
+
+main :: IO ()
+main = do input <- randomList (10^6)
+          print (isOrdered (runEval (pqsort input)))
+
+pqsort :: (Ord a) => [a] -> Eval [a]
+pqsort [] = return []
+pqsort (x:xs) = do (small,large) <- psplit x xs
+                   ss <- rpar (pqsort small)
+                   ls <- rpar (pqsort large)
+                   return (merge (runEval ss) (x:(runEval ls)))
+
+psplit :: (Ord a) => a -> [a] -> Eval ([a],[a])
+psplit x xs = do small <- rpar [e | e <- xs, e <= x]
+                 large <- rpar [e | e <-xs, e > x]
+                 return (small, large)
+
+merge :: (Ord a) => [a] -> [a] -> [a]
+merge [] ys = ys
+merge xs [] = xs
+merge (x:xs) (y:ys) = if x <= y 
+                      then x:(merge xs (y:ys))
+                      else y:(merge (x:xs) ys)
+
+randomList :: Int -> IO [Int]
+randomList n = mapM (\_ -> randomRIO (0,n)) [1 .. n]
+
+isOrdered :: (Ord a) => [a] -> Bool
+isOrdered [] = True
+isOrdered [n] = True
+isOrdered (n1:n2:ns) = n1 <= n2 && (isOrdered (n2:ns))
+
+@

@@ -1,0 +1,187 @@
+I. course summary
+ A. review of syllabus
+------------------------------------------
+    WHAT WE STUDIED
+
+Functional Model with Haskell
+   - Pattern Matching
+   - Follow the Grammar
+   - Functional Abstractions 
+          map, filter, foldr, foldWindowLayout...
+   - Representing Data as Functions
+
+
+Message Passing Model with Erlang
+   - Functional/Sequential programming
+   - Processes 
+       spawn, servers
+   - Message send (!) and receive
+       RPC protocol
+
+------------------------------------------
+ B. Comparisons
+   What are the most important programming tactics in each language?
+   What are the semantic differences between Haskell and Erlang?
+   What is similar semantically between Haskell and Erlang?
+  1. static vs. dynamic type checking
+------------------------------------------
+     STATIC VS. DYNAMIC TYPE CHECKING
+
+Which language has which kind of type checking?
+
+
+
+What are the advantages of each kind of type checking?
+
+
+
+
+What are the drawbacks of each kind?
+
+
+
+
+------------------------------------------
+  2. parallelism
+     How does concurrency work in Erlang?
+     What are the advantages and disadvantages of
+        asynchronous message sending?
+------------------------------------------
+ DIFFERENCES IN APPROACHES TO PARALLELISM?
+
+
+
+
+
+
+
+
+
+
+
+
+------------------------------------------
+        How does concurrency differ between Haskell, Erlang, and Java?
+ C. language design and model ideas
+------------------------------------------
+        WHAT DID WE LEARN ABOUT 
+      PROGRAMMING LANGUAGE DESIGN?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+------------------------------------------
+        What primitives are helpful, powerful?
+        What are some good techniques for defining languages?
+        What are some principles of good language design?
+ D. Programming lessons
+	What did you learn about programming from each?
+------------------------------------------
+  WHAT DID WE LEARN ABOUT PROGRAMMING?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+------------------------------------------
+  1. Declarative
+  2. Declarative parallel programming (in Haskell)
+  3. Actor parallelism (in Erlang)
+  4. Comparison
+        What are the advantages and disadvantages (limits) of each paradigm?
+        How do they compare for making programming easier?
+ E. what's the value of all this?
+------------------------------------------
+        WHAT'S THE VALUE OF ALL THIS?
+
+Programming is language design:
+ - make it easy for your users
+ - give them good notation
+      (syntactic sugars when helpful!)
+ - provide primitives (tools, not solutions),
+   ways to combine them,
+   and abstraction facilities
+
+
+------------------------------------------
+ F. where to go from here
+------------------------------------------
+       WHERE TO GO FROM HERE
+
+Further classes:
+  - COP 5021 Program Analysis 
+
+
+
+------------------------------------------
+II. style (or model) vs. problems
+ A. styles vs. kinds of problems that work well
+------------------------------------------
+  WHAT KINDS OF PROBLEMS WORK WELL IN...
+
+Declarative (+ higher-order) programming?
+
+
+
+
+Declarative parallel programming?
+
+
+
+
+
+Actor programming?
+
+
+
+
+
+
+------------------------------------------
+        How do these compare to OO programming (say in Java)?
+ B. What kinds of things are not easily done in a given style?
+------------------------------------------
+    WHAT IS NOT EASILY DONE IN ...
+
+Declarative programming?
+
+
+
+
+Declarative Parallel programming?
+
+
+
+
+Actor programming?
+
+
+
+
+
+------------------------------------------

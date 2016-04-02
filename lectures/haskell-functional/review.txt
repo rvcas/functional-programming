@@ -1,0 +1,86 @@
+40 points
+4 problems
+- 2 problems 
+
+a) Determine the output of
+
+> head [1,2,3,4,5]
+
+b) Determine the output of
+
+> ....
+
+Your answer: ________________
+
+- 2 problems write code
+- each problem is worth 10 points
+
+[1,2]
+
+  :
+ / \
+1   :
+   / \
+  2  []
+
+foldl f 
+
+map = higher order function
+
+map f [1,2,3] ------> [f 1, f 2, f 3]
+
+--------------------------------------
+
+Some topics:
+
+$
+
+.
+
+(:)
+
+(++)
+
+flip
+
+filter
+
+map
+
+zip 
+
+foldl
+
+foldr
+
+lambda functions
+
+recursive data types 
+  (see, for instance, ReviewNat.hs and ReviewTree.hs) 
+
+tail recursion with iterator functions
+
+---------------------------------------
+
+addPairs :: Num a => [(a,a)] -> [a] 
+
+--reimplement filter 
+
+filter :: (a -> Bool) -> [a] -> [a]
+
+-- first variant
+
+filter p xs = [x | x <- xs, p x]
+
+-- second variant recursion
+
+filter _ []     = []
+filter p (x:xs) 
+  | p x       = x:filter p xs
+  | otherwise = filter p xs
+
+--reimplement map
+
+-----------------------------------
+
+

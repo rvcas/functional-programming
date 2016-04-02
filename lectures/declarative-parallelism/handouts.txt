@@ -1,0 +1,466 @@
+I. Infinite Streams (CTM 4.3)
+ A. definition
+------------------------------------------
+       INFINITE STREAMS
+
+def: an *infinite stream* is
+
+
+
+Grammar
+
+  <IStream T> ::= 
+
+
+
+
+> type IStream a = [a]  -- without the [] case!
+
+> -- Return the list [n ..]
+> count :: Integer -> IStream Integer
+> count n = n:(count (n+1))
+
+
+> countresult = take 20 (filter odd (count 1))
+
+
+------------------------------------------
+     What's the grammar for <Stream T>?
+     How many cases are there in this grammar?
+     Is it recursive?
+     What would a program that processes it look like?
+     How would you implement a stream in Java?
+ B. laziness
+------------------------------------------
+            LAZINESS
+
+Haskell is a lazy language.
+
+- Evaluation only happens if the top level
+      (interpreter or main function)
+  needs the value  (e.g., for printing)
+
+> halves :: [Double]
+> halves = half 1.0
+>   where half x = x : (half (x / 2.0))
+
+Why doesn't this cause an infinite loop?
+
+
+
+
+
+
+
+------------------------------------------
+------------------------------------------
+              :SPRINT
+
+GHC's :sprint command shows what is evaluated
+shows _ for closures
+
+  *InfiniteStreams> :sprint map
+  map = _
+  *InfiniteStreams> let x = 7 * 4
+  *InfiniteStreams> :sprint x
+  x = _
+
+x is not evaluated yet
+
+printing x evaluates it:
+
+  *InfiniteStreams> x
+  28
+  *InfiniteStreams> :sprint x
+  x = 28
+  *InfiniteStreams> 
+
+------------------------------------------
+------------------------------------------
+      WHAT MAKES DEMANDS (NEEDS)?
+
+1. printing value (from main or interpreter)
+
+2. tests that are executed
+     *InfiniteStreams> let y = 7 * 8
+     *InfiniteStreams> :sprint y
+     y = _
+     *InfiniteStreams> if y > 17 then 1 else 0
+     1
+     *InfiniteStreams> :sprint y
+     y = 56
+
+3. pattern matching in case (as far as necessary)
+     *InfiniteStreams> let z = count 1
+     *InfiniteStreams> :sprint z
+     z = _
+     *InfiniteStreams> case z of { (n:_) -> n; _ -> -1 }
+     1
+     *InfiniteStreams> :sprint z
+     z = 1 : _
+
+     Thus pattern matching in called functions
+        can cause arguments to be evaluated
+
+     *InfiniteStreams> take 3 z
+     [1,2,3]
+     *InfiniteStreams> :sprint z
+     z = 1 : 2 : 3 : _
+
+------------------------------------------
+  1. Producer/Consumer (4.3.1)
+------------------------------------------
+  PRODUCER/CONSUMER PIPELINE WITH STREAMS
+
+
+   |-----------| 3:5:7:9:... |-----------|
+   |  Consumer |<------------|  Producer |
+   |-----------|             |-----------|
+
+Example:
+
+   |-----------|             |-----------|
+   |  Player   |<------------|MP3 Encoder|
+   |-----------|             |-----------|
+
+Idea:
+
+
+
+
+------------------------------------------
+    What kinds of things would the consumer do?
+   a. filtering
+------------------------------------------
+             FILTERING
+
+
+ |-------------| 1:2:3:4:... |-----------|
+ | filter odd  |<------------| [1 ..]    |
+ |-------------|             |-----------|
+
+
+> filterresult = take 20 (filter odd (count 1))
+
+------------------------------------------
+   b. Example: Hailstone or 3x+1 problem
+II. Parallelism Techniques
+ A. Basic Concepts
+------------------------------------------
+DO WE NEED LANGUAGE SUPPORT FOR PARALLELISM?
+
+Consider
+
+     e0 e1 e2
+
+Why doesn't Haskell just evaluate 
+   all subexpressions in parallel?
+
+
+
+
+
+
+
+------------------------------------------
+------------------------------------------
+     EXAMPLE PARALLEL ALGORITHM
+
+How to sort a list in parallel?
+   psort :: (Ord a) => [a] -> [a]
+
+
+
+
+
+
+
+
+
+
+
+
+
+------------------------------------------
+  1. what has to be expressed?
+------------------------------------------
+      WHAT DO WE HAVE TO EXPRESS?
+
+Say:
+   - how to divide up work into tasks
+   - how to order parts of computation
+        (what cannot be done in parallel)
+
+
+
+
+------------------------------------------
+     Do we need to say what computations execute on what processors?
+     Do we need to say what percentage of a processor each task gets?
+------------------------------------------
+        HASKELL'S EVAL MONAD
+
+in module Control.Parallel.Strategies
+
+data Eval a = Done a
+  runEval :: Eval a -> a
+  rpar :: a -> Eval a     
+  rseq :: a -> Eval a
+
+instance Monad Eval where
+  return = Done
+  m >>= k = case m of
+              (Done x) -> k x
+
+------------------------------------------
+------------------------------------------
+       CREATING THREADS
+
+import Control.Parallel.Strategies
+
+   rpar exp
+
+- sparks exp as a thread
+- result is a promise
+  (will eventually be value of exp)
+- type is (Eval t), where exp :: t
+- use runEval to get the value out
+
+
+Advantages of Eval and Strategies:
+  - works with lazy evaluation
+  - compositional strategies 
+     for parallel evaluation
+------------------------------------------
+------------------------------------------
+         EXAMPLE: PARMAP
+
+> parMap :: (a -> b) -> [a] -> Eval [b]
+> parMap f [] = return []
+> parMap f (a:as) = 
+>    do b <- rpar (f a)
+>       bs <- parMap f as
+>       return (b:bs)
+
+
+from "Parallel and Concurrent Programming in Haskell"
+by Simon Marlow, p.13
+------------------------------------------
+  2. separating and composing specifications of parallelism
+------------------------------------------
+            STRATEGIES
+
+Goal: separate specification of how to parallelize
+      from specification of data computation
+
+module Control.Parallel.Strategies
+
+type Strategy a = a -> Eval a
+using :: a -> Strategy a -> a
+x `using` s = runEval (s x)
+
+r0 :: Strategy a                   -- do nothing
+rseq :: Strategy a                 -- evaluate argument to WHNF (minimally)
+rdeepseq :: NFData a => Strategy a -- evaluate arg to NF (fully)
+
+------------------------------------------
+------------------------------------------
+             EXAMPLE: PARLIST
+
+Problem: mix of algorithm + parallelism directives
+
+parMap :: (a -> b) -> [a] -> Eval [b]
+parMap f [] = return []
+parMap f (a:as) = 
+   do b <- rpar (f a)
+      bs <- parMap f as
+      return (b:bs)
+
+Goal: extract the strategy for parallelism,
+      separate it from the algorithm
+
+idea: map a given strategy on elements
+      to strategy on whole list
+
+parList :: Strategy a -> Strategy [a]
+parList strat [] =
+parList strat (x:xs) =
+   do 
+
+
+
+
+
+
+With parList can define
+
+> myParMap :: (a -> b) -> [a] -> [b]
+> myParMap f xs = (map f xs) `using` parList rseq
+
+------------------------------------------
+  3. Examples
+   a. Hailstone or 3x+1 problem again
+   b. Sudoku
+ B. Amdhal's law
+------------------------------------------
+             AMDHAL'S LAW
+
+Speedup = serial clock time / parallel time
+
+Why can't we speed up our program 4 times
+   if we have 4 Cores?
+
+ - There are parts of the program we can't parallelize
+
+ Let P be the fraction of computation that can be parallelized
+ Let S be the speedup achieved for P
+
+ The the serial execution fraction is (1-P)
+ The fraction of the time taken by parallel part is P/S
+
+ So overall speedup is: 
+            1 
+       ___________
+      (1-P) + (P/S)
+------------------------------------------
+III. Dataflow Parallelism in Haskell
+ A. motivation
+------------------------------------------
+ DATAFLOW NETWORKS (PAR MONAD) MOTIVATION
+
+Goals: 
+  + more explicit granuality and data dependencies
+  + still deterministic
+
+Compared to Eval and Strategies:
+  - more overhead, 
+     so Par is better for larger granularity
+
+------------------------------------------
+ B. The Par Monad (Section 2.3)
+------------------------------------------
+    The Par Monad (Control.Monad.Par)
+
+> import Control.Monad.Par
+
+data Par a
+runPar :: Par a -> a      -- does computation
+fork :: Par () -> Par ()  -- creates a task
+
+instance Monad Par
+   
+------------------------------------------
+  1. IVars
+------------------------------------------
+      COMMUNICATION USING IVar
+
+-- also in Control.Monad.Par
+
+data IVar a  
+
+new :: Par (IVar a)    -- makes a future
+put :: NFData a => IVar a -> a -> Par ()
+get :: IVar a -> Par a
+
+-- example use:
+
+> testPar n m = 
+>   runPar $ do
+>            i <- new
+>            j <- new
+>            fork (put i (fib n))
+>            fork (put j (fib m))
+>            a <- get i
+>            b <- get j
+>            return (a+b)
+>
+> fib n = if n < 2 then n 
+>         else (fib (n-2))+(fib (n-1))
+
+
+
+
+
+
+
+
+------------------------------------------
+  2. examples
+   a. spawn
+------------------------------------------
+            SPAWNING A FUTURE
+
+> spawn' :: NFData a => Par a -> Par (IVar a)
+> spawn' p = do i <- new
+>               fork (do x <- p
+>                        put i x)
+>               return i
+
+------------------------------------------
+   b. divide and conqueor algorithms
+------------------------------------------
+           DIVIDE AND CONQUEOR
+
+pattern of  divide and conqueor algorithms
+
+> divideAndConqueor :: (NFData solution) 
+>     => Int
+>     -> (problem -> (problem, problem))
+>     -> (problem -> solution)
+>     -> (solution -> solution -> solution)
+>     -> problem
+>     -> solution
+> divideAndConqueor maxdepth split solve combine prob = 
+>     runPar $ solveIt 0 prob
+>     where
+>       solveIt d prob | d >= maxdepth
+>                          = return (solve prob)
+>       solveIt d prob = 
+>           do let (left, right) = split prob
+>              lv <- spawn (solveIt (d+1) left)
+>              rv <- spawn (solveIt (d+1) right)
+>              ls <- get lv
+>              rs <- get rv
+>              return (combine ls rs)
+
+------------------------------------------
+------------------------------------------
+            QUICKSORT USING PAR
+
+This actually does give some speedups
+
+-- using sort from Data.List
+
+> pqsort :: (Ord a, NFData a) => [a] -> [a]
+> pqsort xs = 
+>     divideAndConqueor 2 psplit sort (++) xs
+
+> psplit :: (Ord a) => [a] -> ([a],[a])
+> psplit [] = ([],[])
+> psplit (x:xs) = let small = [e | e <- xs, e <= x]
+>                     large = [e | e <- xs, e > x]
+>                 in (small, x:large)
+
+------------------------------------------
+ C. summary of dataflow parallelism with the Par monad
+------------------------------------------
+        SUMMARY: EVAL vs. PAR
+
+When to use Eval and Strategies:
+
+ - when you want a lazy result
+ - when you don't want to thread a monad
+   throughout your code
+ - when you need to cleanly separate 
+   algorithm from parallelism (Strategies)
+ - when the parallelism is fine grained
+ - when you need speculative parallelism
+
+When to use dataflow parallelism and Par:
+
+ - when the answer must be fully evaluated
+ - when Par can be threaded throughout,
+   avoiding multiple calls to runPar
+ - when the parallelism is couarse grained
+
+------------------------------------------

@@ -1,0 +1,240 @@
+I. Summary and Review of the declarative models
+ A. Programming Langauges in general
+  1. Concepts
+   a. Programming Language
+     What is a programming language?
+     Is Haskell a programming language? Java? VBA? Postscript? SQL?
+   b. Syntax
+     What is syntax?
+    i. Context-Free Grammars
+     How is syntax described?
+     Do you know how to read a context-free grammar?
+     HOw is a context free grammar like a Haskell data definition?
+    ii. Review of Haskell
+     What is good and bad about Haskell's syntax?
+   c. Semantics
+     What is semantics?
+     What is the difference between a statement and an expression?
+     How could we describe Haskell's semantics?
+    i. Review of Haskell
+     What are key features of Haskell's semantics?
+     What causes a need in a Haskell program?
+     How could laziness be implemented?
+ B. Functional Programming
+  1. Concepts and Relation to Other Langauges
+   a. Free and Bound Variable Identifiers
+     How can you determine what the free and bound variable
+        identifiers are in a program fragment?
+     Can you tell what free and bound variable identifiers are
+        without running the program? Is that a static property?
+     Which kind of scoping are we assuming when we talk about free
+        and bound variable identifiers?
+   b. Static vs. Dynamic Scoping
+     What is different between static and dynamic scoping?
+     How does dynamic scoping work?
+     What has to be done to ensure static scoping?
+     What are the advantages of static scoping?
+     What kind of scoping does Haskell have? Java? C?
+   c. Closures
+     What is a closure?
+     How is a closure created in Haskell?
+     What kind of scoping uses closures?
+     Why are closures used?
+     Are there closures in Java?
+     How would you simulate closures in Java?
+   d. Syntactic Sugars
+     What is a syntactic sugar?
+     What are some examples from Haskell? C? Java?
+     Should you use syntactic sugars when programming?
+   e. Types and type checking
+     What does a type tell you about a program?
+     What is a type error?
+     What does type checking guarantee about a program?
+     What do the types in Haskell mean?
+    i. Static vs. Dynamic typing
+     What is the difference between a static and dynamic property?
+     What is the difference between static and dynamic typing?
+     What kind of type checking does Haskell have? Java? Erlang?
+    ii. Type inference
+     How does Haskell figure out the types of your code?
+     What rules does Haskell use?
+     How does type checking in Haskell differ from Java?
+    iii. Polymorphism
+     What is a polymorphic type? How does it look in Haskell?
+     Does Haskell allow you to overload a function name?
+     How does ad hoc polymorphism work in Haskell?
+   f. Lazy Evaluation
+     What is eager evaluation?
+     What does lazy evaluation mean in Haskell?
+------------------------------------------
+         LAZY EVALUATION
+
+Would this work in Java?
+
+> ints = [1 .. ]
+> lres = length ints
+>
+> ifFalse b e2 e3 = 
+>       if not b then e2 else e3
+>
+> complexCondition n1 n2 n3 = n1*n2 < (n3*n2 `div` 4)
+> res = ifFalse (complexCondition 3 10 2) 5 (7 `div` 0)
+
+------------------------------------------
+------------------------------------------
+         THE ANSWER IS STORED
+
+> fibgen :: Integer -> Integer -> [Integer]
+> fibgen a b = a : (fibgen b (a+b))
+> fibs = fibgen 0 1
+> fib n = fibs !! n
+
+> timeFor :: IO() -> IO (TimeDiff)
+> timeFor act = do t0 <- getClockTime -- from System.Time
+>                  act
+>                  t1 <- getClockTime
+>                  return (t0 `diffClockTimes` t1)
+> main = do td0 <- (timeFor (let i = fib 3000 in print (i `mod` 2)))
+>           td1 <- (timeFor (let i = fib 3000 in print (i `mod` 2)))
+>           td2 <- (timeFor (let i = fib 3100 in print (i `mod` 2)))
+>           print td0
+>           print td1
+>           print td2
+
+------------------------------------------
+        Where is the computation memorized in the above?
+  2. Programming Tactics
+   a. Data modeling
+     What kinds of types are useful for data modeling in Haskell?
+------------------------------------------
+           TYPES OF DATA
+
+Primitive Types
+     Bool, Int, Integer, Float, Double, Char
+
+Product Types
+     multiple pieces of data, all present
+       Lists, Records, Tuples
+
+Sum Types
+     different pieces of data, only one present
+       data definitions
+------------------------------------------
+     How would you model something like cars and trucks for the DMV?
+     What is that like in Java? in C?
+   b. ADTs
+     How are abstract data types created in Haskell?
+     What enforces encapsulation?
+     How does it do that?
+   c. Abstraction using functions.
+   d. Pattern matching
+     How is pattern matching done in Haskell?
+   e. Pipelining and intermediate data
+     Is it ever helpful to imagine an intermediate data structure
+        in your program?
+     What's a good example of that?
+   f. Following the grammar
+     What does "following the grammar" mean?
+     Why is it helpful?
+   g. Full vs. Tail Recursion
+     What does it mean for a function to be tail recursive?
+     What do you do to write a tail recursive function?
+   h. Threading
+     How can a function in Haskell work with a variable whose value
+        is built up incrementally over time?
+  3. Advantages
+    What advantages does functional programming offer?
+  4. Disadvantages
+    What are the disadvantages of functional programming?
+ C. Declarative parallelism
+    What is the goal of parallel processing?
+    What is the difference between parallelism and concurrency?
+    What is a race condition?
+  1. Expression of parallelism
+    What do we have to say to express parallel algorithms?
+    Are race conditions possible in the Haskell mechanisms we saw?
+    What is a strategy?
+ D. limits of the declarative model
+------------------------------------------
+     THE DECLARATIVE MODELS
+
+Main characteristic:
+   computations are deterministic
+    ==> concurrency with no race conditions
+
+Advantages:
+   - clarity of dependencies
+      all time-varying state passed explicitly
+   - allows simple equational reasoning
+   - functional abstraction
+
+------------------------------------------
+  1. efficiency
+------------------------------------------
+       EFFICIENCY OF DECARATIVE MODEL
+
+CPUs optimized for manipulating data in place
+     so hard to implement...
+
+May have to rewrite the program...
+
+ - incremental modifications of large data
+   have to be careful to "single thread" it
+   (never access old state)
+
+ - memoization requires change in interface
+
+ - may be more complex, due to lack of expressiveness
+       e.g. for transitive closure algorithm
+
+------------------------------------------
+   What does it mean to be modular?
+------------------------------------------
+          MODULARITY
+
+
+
+
+
+------------------------------------------
+   What problems are hard to modularize in the declarative model?
+------------------------------------------
+ MODULARITY PROBLEMS OF DECLARATIVE MODEL
+
+ -  memoization, 
+      accumulators change interface, 
+      affect clients
+
+ - instrumenting programs 
+     (counters for performance, etc.)
+
+
+
+Why not use a compiler/preprocessor 
+to translate stateful model code
+to the declarative model?
+
+
+
+------------------------------------------
+ E. nondeterminism (4.8.3)
+------------------------------------------
+           NONDETERMINISM (4.8.3)
+
+Is the declarative model always deterministic?
+
+
+Might we sometimes want nondeterminism?
+
+
+Why?
+
+
+
+
+
+
+
+------------------------------------------
+    Can two clients send to the same server without being coordinated?
+ F. real world (4.8.4)

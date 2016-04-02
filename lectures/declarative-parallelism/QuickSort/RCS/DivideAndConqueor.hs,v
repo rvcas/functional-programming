@@ -1,0 +1,69 @@
+head	1.2;
+access;
+symbols;
+locks
+	leavens:1.2; strict;
+comment	@# @;
+
+
+1.2
+date	2013.10.24.13.56.24;	author leavens;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	2013.10.24.13.49.00;	author leavens;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.2
+log
+@use Control.Monad.Par
+@
+text
+@-- $Id: DivideAndConqueor.hs,v 1.1 2013/10/24 13:49:00 leavens Exp leavens $
+module DivideAndConqueor where
+import Control.Monad.Par -- .Scheds.Trace
+import Control.DeepSeq
+
+-- divideAndConqueor abstracts the pattern of divide and conqueor algorithms
+-- The first argument (maxdepth) should be log_2(processors) on your machine
+divideAndConqueor :: (NFData solution) 
+                  => Int                  -- maximum depth of splitting
+                  -> (problem -> (problem, problem))  -- splits problems
+                  -> (problem -> solution)            -- solves subproblems
+                  -> (solution -> solution -> solution) -- combines solutions
+                  -> problem
+                  -> solution
+divideAndConqueor maxdepth split solve combine prob = 
+    runPar $ solveIt 0 prob
+    where
+      solveIt d prob | d >= maxdepth
+                         = return (solve prob)
+      solveIt d prob = 
+          do let (left, right) = split prob
+             lv <- spawn (solveIt (d+1) left)
+             rv <- spawn (solveIt (d+1) right)
+             ls <- get lv
+             rs <- get rv
+             return (combine ls rs)
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d1 1
+a1 1
+-- $Id: PQSortRun3.hs,v 1.2 2013/10/23 13:37:23 leavens Exp leavens $
+d3 1
+a3 1
+import Control.Monad.Par.Scheds.Trace
+@

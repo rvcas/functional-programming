@@ -1,0 +1,28 @@
+COP 4020 unit -*- Outline -*-
+
+* introduction
+	syllabus, what the course is about
+
+* learning-language
+        tips for learning a language 
+
+* haskell-functional
+        Functional programming model and the Haskell language
+
+* delcarative-parallelism
+        Declarative parallelism (in Haskell and possibly Erlang)
+
+* declarative-summary
+        Review of concepts and relation to other languages
+
+* erlang-sequential
+        Sequential programming in Erlang, basics and differences from Haskell
+
+* erlang-actors
+        Programming stateless and stateful servers
+
+* erlang-distributed
+        Programming distributed systems, robustness and fault tolerance
+
+* summary-review
+

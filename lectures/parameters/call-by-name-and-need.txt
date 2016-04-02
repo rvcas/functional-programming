@@ -1,0 +1,357 @@
+Com S 342 meeting -*- Outline -*-
+
+* Call-by-Name and Call-by-Need (3.8, pp. 115ff)
+
+  ad: call by name is in Scala, a new language for web services
+
+** eager (strict) vs. lazy evaluation
+
+------------------------------------------
+       EAGER (strict) vs. LAZY 
+
+def: a parameter passing mechanism is
+     eager (or strict) if it evaluates
+     actual parameters before calling the
+     procedure
+
+--> define constant(x) = proc(y) x
+--> define loop() = (loop)
+--> ((constant 3) (loop))
+    ... loops forever ...
+
+
+def: a parameter passing mechanism is
+     lazy if
+
+
+
+--> define constant(x) = proc(y) x
+--> define loop() = (loop)
+--> ((constant 3) (loop))
+
+
+------------------------------------------
+            (wait for someone to ask)
+
+        ... it evaluates each argument only if its value is needed 
+
+
+** motivation
+
+   Q: Why can't "if" be a procedure in a normal language?
+      Because it evaluates its arguments strictly.
+   Q: Could "if" be a procedure in a language with lazy evaluation?
+      Yes.
+
+   Q:  Does eager evaluation ever waste effort?
+       Yes, if the argument isn't used.
+
+** implementation overview
+
+   Q:  How could we avoid evaluating an expression in Scheme?
+       put it inside a lambda
+
+------------------------------------------
+      DELAYING EVALUATION IN SCHEME
+
+(define loop (lambda () (loop)))
+
+(define expensive (lambda () ...))
+
+
+def: a *thunk* is a procedure with
+
+
+def: creation of a thunk is called
+     *freezing* an expression
+
+     e.g., to freeze (foo x 3)
+           use (lambda () (foo x 3))
+
+def: use of a thunk is called *thawing* it
+
+     e.g., (define thaw (lambda (p) (p)))
+------------------------------------------
+     ... no arguments
+
+** call-by-name vs. call-by-need
+
+------------------------------------------
+      CALL BY NAME vs. CALL BY NEED
+
+General idea: bind formals to thunks
+
+Call by name: evaluate thunk each time
+ the corresponding formal parameter
+ is referenced
+
+Call by need: evaluate the thunk only
+ the first time it is used,
+ save the value,
+ return that stated value for other uses
+ 
+Example:
+
+let g = let count = 0
+        in proc ()
+             begin
+               set count = add1(count);
+               count
+             end
+in (proc (x) +(x,x)
+    (g))
+
+------------------------------------------
+
+        Q:  What are the advantages and disadvantages of these two
+        strategies?
+
+        overall/both:
+          - validates beta-rule reasoning (substituting actuals
+            for formals, Beta-rule)
+          - supports writing control structures as procedures
+          - supports infinite data structures more directly (streams, etc.)
+
+        call by name:
+          - wastes effort if there are no side effects that occur
+          - can use symbolic expressions to refer different locations
+            if side effects occur
+              (Jensen's device: pass a[i] and i, change i)
+          - hard to follow if there are side effects
+
+        call by need:
+          - saves time is no side effects occur
+          - best in purely functional languages
+             (used in Haskell, Miranda, Lazy ML, ...)
+          - hard to know when side effects will happen if they are permitted
+
+** implementation
+
+   see ch3-8name.scm and ch3-8need.scm for the whole thing
+
+*** domains
+------------------------------------------
+           DOMAINS (for both)
+
+Expressed-Value = Number + ProcVal
+Denoted-Value = Ref(Target)
+Target = Direct-Target(Expressed-Value)
+   + Indirect-Target(Ref(Target))
+   + Thunk-Target(expression x environment)
+
+------------------------------------------
+
+    Q: How does this differ from call by reference?
+       only in terms of thunks, so basically like call by reference.
+
+*** thunks as targets
+
+    Q: If we wanted to represent the information in (lambda () exp)
+       without using a Scheme closure, how would we do that?
+       ... the usual transform ...
+            but don't present it that way,
+             since only thunks in references work for call by need!
+
+------------------------------------------
+        THUNKS AS TARGETS (for both)
+
+(define-datatype target target?
+  (direct-target
+    (expval expval?))
+  (indirect-target
+    (ref ref-to-direct-target?))
+  (thunk-target
+
+
+
+------------------------------------------
+   ...
+    (exp expression?)
+    (env environment?)))
+
+        Q: What do targets do in the interpreter?
+        Q: What should ref-to-direct-target? do?
+           either direct but not indirect
+        Q: What about thunks?
+           need to allow them in indirect targets
+        Q: Why?
+           when evaluating a call like (f x),
+           want to make an indirect target
+           that can refer to what x refers to,
+           even if x refers to a thunk
+
+(define ref-to-direct-target?
+  (has-type-trusted
+    (type-predicate-for (ref-of target))
+    (lambda (x)
+      (and
+       (reference? x) 
+       (cases target (primitive-deref x)
+	 (indirect-target (r) #f)
+	 (else #t))))))
+
+*** eval-rand
+
+    eval-expression uses the same call to eval-rands to evaluate the
+    args to get targets as in call by reference.
+
+    So eval-rand is the interesting part...
+
+    don't freeze literals and proc-exps
+    treat variables as in call by reference
+    freeze everything else
+
+------------------------------------------
+              EVAL-RAND
+
+(deftype eval-rand
+  (-> (expression environment) target))
+(define eval-rand
+  (lambda (rand env)
+    (cases expression rand
+
+
+
+
+
+
+
+
+
+
+
+
+
+------------------------------------------
+
+      (var-exp (id)
+        (indirect-target
+          (let ((ref (apply-env-ref env id)))
+            (cases target (primitive-deref ref)
+              (indirect-target (ref1) ref1)
+	      (else ref)))))
+      (lit-exp (datum)
+        ;; optimization
+        (direct-target (number->expressed datum)))
+      (proc-exp (ids body)
+         ;; another optimization
+        (direct-target (procval->expressed (closure ids body env))))
+      (else (thunk-target rand env)))))
+
+*** manipulating references
+
+    Q: What else in the interpreter is involved with targets?
+       deref and setref!
+
+**** deref
+***** for call by name
+------------------------------------------
+            DEREF FOR CALL BY NAME
+
+(define deref 
+  (lambda (ref)
+    (cases target (primitive-deref ref)
+      (direct-target (expval) expval)
+      (indirect-target (ref1)
+        (cases target (primitive-deref ref1)
+          (direct-target (expval) expval)
+          (indirect-target (p)
+            (eopl:error 'deref
+              "Illegal reference: ~s" ref1))
+
+
+
+
+------------------------------------------
+        ...
+          (thunk-target (exp env) (eval-expression exp env))))
+      (thunk-target (exp env) (eval-expression exp env)))))
+
+***** for call by need
+------------------------------------------
+            DEREF FOR CALL BY NEED
+
+(define deref 
+  (lambda (ref)
+    (cases target (primitive-deref ref)
+      (direct-target (expval) expval)
+      (indirect-target (ref1)
+        (cases target (primitive-deref ref1)
+          (direct-target (expval) expval)
+          (indirect-target (p)
+            (eopl:error 'deref
+              "Illegal reference: ~s" ref1))
+
+
+
+
+------------------------------------------
+        ...
+          (thunk-target (exp env) (eval-thunk ref1 exp env))))
+      (thunk-target (exp env) (eval-thunk ref exp env)))))
+
+      Notice that we pass the ref, not the exp and env
+      so that we can memoize it.
+
+------------------------------------------
+      EVAL-THUNK FOR CALL BY NEED
+
+(deftype eval-thunk
+  (-> ((ref-of target)
+       expression
+       environment)
+      expressed-value))
+(define eval-thunk                      
+  (lambda (ref exp env)
+
+
+
+
+
+------------------------------------------
+    ...
+        (let ((val (eval-expression exp env)))
+          (primitive-setref! ref (direct-target val))
+          val)))
+
+     This is the crucial diff from call by name, the only one, really
+
+**** setref!
+
+     The setref! procedure is unchanged from the call by reference
+     interpreter (since use else)
+
+** summary
+
+*** memoization
+   idea of memoization is useful outside of programming languages
+
+       - amortized algorithms
+
+*** language design
+
+   to design a parameter passing implementation:
+   pay attention to:
+
+     - how you make references for arguments (eval-rand)
+     - how you manipulate references (deref, setref!)
+
+*** language user
+------------------------------------------
+           SUMMARY CHART
+
+                       action
+mechanism  |   at call        at return
+===========|=============================
+   value      copy value        -
+reference     copy address      -
+value-result  copy address    copy result
+              copy value
+   result     copy address    copy result
+   name       copy address      -
+              of thunk
+   need       copy address      -
+              of thunk
+------------------------------------------
+
+      The other part is how the langauge treats those addresses

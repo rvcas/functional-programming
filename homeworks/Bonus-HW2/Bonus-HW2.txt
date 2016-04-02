@@ -1,0 +1,17 @@
+Bonus HW 2:
+-----------
+
+This bonus homework is worth 10 points.
+
+Problem 1:
+----------
+
+Modify the interactive calculator such that the variable names 
+can be strings of arbitrary length and not just a single character.
+
+Note that you may have to modify several of the files from the
+directory /haskell-funtional/parser
+
+Zip all the files and submit the archive to webcourses.  
+
+

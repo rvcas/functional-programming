@@ -1,0 +1,67 @@
+COP 4020 Lecture -*- Outline -*-
+
+* program design for concurrency (5.4)
+
+** programming with concurrent components (5.4.1-2)
+
+------------------------------------------
+     PROGRAM DESIGN (MULTIAGENT SYSTEMS)
+
+Requirements:
+
+   system overall is a (set of) port(s)
+   specify causal relations
+     on its I/O streams
+
+
+         |-----------------|
+    I1-->|                 |-->O1
+         |     System      |
+    I2-->|                 |-->O2
+    I3-->|                 |
+     /-->|                 |-\
+     |   |-----------------| |
+     |                       |
+     \----------<------------/
+       
+Architecture
+
+   model system is set of agents
+   communicate by message passing
+
+   components are procedures:
+     when invoked, creates an instance,
+       which is a port object
+         that uses streams for I/O
+
+Detailed design:
+
+  describe
+     - state of each agent (if any)
+         including state diagrams
+     - interaction protocol
+     - scheduling constraints
+
+Test it!
+------------------------------------------
+
+** building blocks
+
+------------------------------------------
+ LIST OPERATIONS AS CONCURRENCY PATTERNS
+
+Example:
+
+   Map
+     broadcasts queries
+     collects replies in a list
+
+   AL = {Map
+          PL
+          fun {$ P} 
+             {Send P query(foo $)}
+          end}
+------------------------------------------
+
+     Q: Can you use FoldL as a concurrency pattern?
+     Yes, e.g., to get maximum answer
