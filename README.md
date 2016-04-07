@@ -1,5 +1,5 @@
 # COP4020
-Programming Languages (functional)
+Functional Programming Languages
 
 ### Info:
 Class I took at University of Central Florida in the Fall 2015 semester.
